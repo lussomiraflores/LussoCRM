@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LUSSO Beauty Salón | Sistema de Gestión, Agenda & POS</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <!-- Favicon / Brand Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💅</text></svg>">
+</head>
+<body>
+
+  <!-- ================= TOP SYSTEM BAR ================= -->
+  <header class="top-system-bar">
+    <div class="system-brand">
+      <div class="lusso-logo-box">
+        <span class="lusso-brand-text">LUSSO</span>
+        <span class="lusso-sub-tag">BEAUTY SALÓN</span>
+      </div>
+      <span class="system-badge">Miraflores</span>
+    </div>
+
+    <div class="system-location-tag">
+      <span>📍 Calle Berlín 481, Miraflores • 📞 WhatsApp: +51 971 988 386 • ⏰ Lun-Vie 11am-8:30pm | Sáb 10am-8:30pm</span>
+    </div>
+    
+    <div class="top-actions-group">
+      <!-- Role Switcher (Stylist Mode vs Owner Mode with PIN) -->
+      <div class="top-role-wrapper">
+        <button id="btn-top-role-toggle" class="role-switcher-btn role-stylist" onclick="window.lussoCRM && window.lussoCRM.handleRoleClick()" title="Cambiar entre Modo Estilistas y Modo Dueña con PIN">
+          <span id="top-role-icon">💅</span>
+          <span id="top-role-label">Modo Estilista</span>
+          <span id="top-role-action-badge" class="role-action-tag">🔒 Desbloquear Dueña</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CRM LAYOUT ================= -->
+  <div id="view-crm" class="view-wrapper">
+    <div class="crm-layout">
+      
+      <!-- Sidebar Navigation -->
+      <aside class="crm-sidebar">
+        <div>
+          <div class="crm-sidebar-header">
+            <div class="sidebar-brand-box">
+              <h1 class="sidebar-lusso-title">LUSSO</h1>
+              <span class="sidebar-lusso-sub">BEAUTY SALÓN • MIRAFLORES</span>
+            </div>
+            <div id="sidebar-role-indicator" class="sidebar-role-tag mt-2">
+              <span class="role-indicator-dot"></span>
+              <span id="sidebar-role-text">Personal: Kiara & Cielo</span>
+            </div>
+          </div>
+
+          <ul class="crm-nav-list">
+            <li class="crm-nav-item active" data-tab="dashboard">
+              <span class="crm-nav-icon">📊</span>
+              <span>Dashboard & Métricas</span>
+            </li>
+            <li class="crm-nav-item" data-tab="appointments">
+              <span class="crm-nav-icon">📅</span>
+              <span>Agenda & Citas</span>
+              <span id="crm-sidebar-pending-badge" class="badge-sidebar-notif hidden">0</span>
+            </li>
+            <li class="crm-nav-item" data-tab="clients">
+              <span class="crm-nav-icon">👥</span>
+              <span>Directorio de Clientas</span>
+            </li>
+            <li class="crm-nav-item" data-tab="sales">
+              <span class="crm-nav-icon">💳</span>
+              <span>Punto de Venta / POS</span>
+            </li>
+            <li class="crm-nav-item" data-tab="inventory">
+              <span class="crm-nav-icon">📦</span>
+              <span>Inventario de Insumos</span>
+            </li>
+            <li class="crm-nav-item nav-item-locked" data-tab="expenses">
+              <span class="crm-nav-icon">💰</span>
+              <span>Gastos & Facturas</span>
+            </li>
+            <li class="crm-nav-item nav-item-locked" data-tab="payroll">
+              <span class="crm-nav-icon">👥</span>
+              <span>Asistencia & Pagos</span>
+            </li>
+            <li class="crm-nav-item nav-item-locked" data-tab="backup">
+              <span class="crm-nav-icon">⚙️</span>
+              <span>Respaldo & Datos</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="crm-sidebar-footer">
+          <div class="sidebar-wa-contact mb-2">
+            <span>💬 WhatsApp Salón:</span>
+            <strong>+51 971 988 386</strong>
+          </div>
+          <button id="btn-export-backup" class="btn-sidebar-backup" onclick="window.lussoCRM && window.lussoCRM.handleExportBackup()">
+            💾 Respaldo Rápido (JSON)
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="crm-main">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="crm-tab-content active">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Resumen Operativo del Salón</h1>
+              <p class="crm-view-desc">Métricas clave, citas del día y estado del salón en tiempo real.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-outline" onclick="window.lussoCRM.openManualAppointmentModal()">
+                <span>+ Nueva Cita</span> 📅
+              </button>
+              <button class="btn-primary" onclick="window.lussoCRM.switchTab('sales')">
+                <span>+ Cobrar en Caja (POS)</span> 💳
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card" id="kpi-revenue-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Ingresos Totales (2026)</span>
+                <span class="kpi-icon">💰</span>
+              </div>
+              <div class="kpi-val" id="kpi-total-revenue">S/ ••••••</div>
+              <div class="kpi-subtitle">Facturación acumulada registrada</div>
+            </div>
+
+            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('appointments')">
+              <div class="kpi-header">
+                <span class="kpi-title">Citas de Hoy</span>
+                <span class="kpi-icon">📅</span>
+              </div>
+              <div class="kpi-val text-primary" id="kpi-today-appointments">0</div>
+              <div class="kpi-subtitle">Atención programada para hoy</div>
+            </div>
+
+            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('appointments')">
+              <div class="kpi-header">
+                <span class="kpi-title">Citas Pendientes</span>
+                <span class="kpi-icon">⏳</span>
+              </div>
+              <div class="kpi-val text-amber" id="kpi-pending-appointments">0</div>
+              <div class="kpi-subtitle">Por confirmar con clientas</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Servicios Cobrados</span>
+                <span class="kpi-icon">🧾</span>
+              </div>
+              <div class="kpi-val" id="kpi-total-sales">0</div>
+              <div class="kpi-subtitle">Transacciones completadas</div>
+            </div>
+
+            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('clients')">
+              <div class="kpi-header">
+                <span class="kpi-title">Total de Clientas</span>
+                <span class="kpi-icon">👥</span>
+              </div>
+              <div class="kpi-val" id="kpi-total-clients">0</div>
+              <div class="kpi-subtitle">Fichas en directorio</div>
+            </div>
+
+            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('inventory')">
+              <div class="kpi-header">
+                <span class="kpi-title">Insumos por Reponer</span>
+                <span class="kpi-icon">⚠️</span>
+              </div>
+              <div class="kpi-val text-emerald" id="kpi-low-stock">0</div>
+              <div class="kpi-subtitle">Alertas de stock crítico</div>
+            </div>
+          </div>
+
+          <!-- Section: Today Appointments Schedule in Dashboard -->
+          <div class="dashboard-card mb-4">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">⏰ Citas y Atenciones de Hoy</h3>
+                <p class="text-xs text-muted">Agenda en vivo para Kiara y Cielo. Contacta y confirma tus clientas por WhatsApp con 1 clic.</p>
+              </div>
+              <button class="btn-sm btn-outline" onclick="window.lussoCRM.openManualAppointmentModal()">+ Agendar Cita</button>
+            </div>
+            <div id="dashboard-today-appointments-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Two Column Operational Insights -->
+          <div class="dashboard-grid-2">
+            <!-- Specialist Performance -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Atención por Especialista</h3>
+              <div id="chart-specialists" class="chart-container-clean"></div>
+            </div>
+
+            <!-- Payment Methods Breakdown -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Métodos de Pago Utilizados</h3>
+              <div id="chart-payment-methods" class="chart-container-clean"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Row: Top Services & Low Stock Alerts -->
+          <div class="dashboard-grid-2 mt-4">
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Servicios Más Solicitados</h3>
+              <div id="dashboard-top-services-list" class="top-services-list"></div>
+            </div>
+
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Alertas de Reposición de Insumos</h3>
+              <div id="dashboard-low-stock-list"></div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 2: APPOINTMENTS / AGENDA -->
+        <section id="tab-appointments" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Agenda & Control de Citas</h1>
+              <p class="crm-view-desc">Gestión diaria de reservas, confirmaciones por WhatsApp (+51 971 988 386) y control de atención.</p>
+            </div>
+            <div class="header-action-btns">
+              <a href="https://calendar.google.com" target="_blank" class="btn-outline" title="Abrir Google Calendar en otra pestaña">
+                <span>📅 Google Calendar</span>
+              </a>
+              <button class="btn-outline" onclick="window.lussoCRM.handleExportICalendar()" title="Descargar citas en formato iCalendar (.ics) para sincronizar con Google Calendar">
+                <span>📥 Sincronizar (.ics)</span>
+              </button>
+              <button class="btn-primary" onclick="window.lussoCRM.openManualAppointmentModal()">
+                <span>+ Nueva Cita</span> 📅
+              </button>
+            </div>
+          </div>
+
+          <!-- Appointment Stats Ribbon -->
+          <div class="appointment-stats-row mb-4">
+            <div class="apt-stat-box active" onclick="window.lussoCRM.setAppointmentDateFilter('today')">
+              <span class="apt-stat-label">Citas para Hoy</span>
+              <span id="apt-stat-today-count" class="apt-stat-num text-primary">0</span>
+            </div>
+            <div class="apt-stat-box" onclick="window.lussoCRM.setAppointmentStatusFilter('pending')">
+              <span class="apt-stat-label">Por Confirmar</span>
+              <span id="apt-stat-pending-count" class="apt-stat-num text-amber">0</span>
+            </div>
+            <div class="apt-stat-box" onclick="window.lussoCRM.setAppointmentStatusFilter('confirmed')">
+              <span class="apt-stat-label">Confirmadas</span>
+              <span id="apt-stat-confirmed-count" class="apt-stat-num text-emerald">0</span>
+            </div>
+            <div class="apt-stat-box" onclick="window.lussoCRM.setAppointmentStatusFilter('completed')">
+              <span class="apt-stat-label">Atendidas / Cobradas</span>
+              <span id="apt-stat-completed-count" class="apt-stat-num">0</span>
+            </div>
+          </div>
+
+          <!-- Filters Row -->
+          <div class="table-filters-row mb-3">
+            <div class="filter-search-box">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="appointment-search-input" class="filter-input" placeholder="Buscar por clienta, celular o servicio...">
+            </div>
+            <div class="filter-selects-group">
+              <select id="appointment-spec-filter" class="filter-select" onchange="window.lussoCRM.setAppointmentSpecFilter(this.value)">
+                <option value="all">Todas las Especialistas</option>
+                <option value="Kiara">💇‍♀️ Kiara (Estilista)</option>
+                <option value="Cielo">💅 Cielo (Nail Artist)</option>
+              </select>
+              <select id="appointment-date-filter" class="filter-select" onchange="window.lussoCRM.setAppointmentDateFilter(this.value)">
+                <option value="today">Hoy</option>
+                <option value="tomorrow">Mañana</option>
+                <option value="week">Esta Semana</option>
+                <option value="all">Todas las Fechas</option>
+              </select>
+              <select id="appointment-status-filter" class="filter-select" onchange="window.lussoCRM.setAppointmentStatusFilter(this.value)">
+                <option value="all">Todos los Estados</option>
+                <option value="pending">⏳ Pendiente</option>
+                <option value="confirmed">✅ Confirmada</option>
+                <option value="completed">💅 Atendida</option>
+                <option value="cancelled">❌ Cancelada</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Appointments List / Table Container -->
+          <div class="dashboard-card">
+            <div id="appointments-list-container">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 3: CLIENT DIRECTORY & TECH SPECS -->
+        <section id="tab-clients" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Directorio de Clientas & Fichas Técnicas</h1>
+              <p class="crm-view-desc">Historial de visitas, teléfonos y fórmulas técnicas de tinte o manicura de cada clienta.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-primary" onclick="window.lussoCRM.openNewClientModal()">
+                <span>+ Nueva Clienta</span> 👥
+              </button>
+            </div>
+          </div>
+
+          <div class="table-filters-row mb-3">
+            <div class="filter-search-box">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="client-search-input" class="filter-input" placeholder="Buscar por nombre, celular o notas técnicas...">
+            </div>
+            <span id="client-count-badge" class="filter-badge">0 clientas registradas</span>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="lusso-table" id="clients-table">
+                <thead>
+                  <tr>
+                    <th>Nombre de la Clienta</th>
+                    <th>Celular / WhatsApp</th>
+                    <th>Visitas</th>
+                    <th>Última Visita</th>
+                    <th>Especialista</th>
+                    <th>Notas Técnicas / Fórmulas</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="clients-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 4: POS & SALES CHECKOUT -->
+        <section id="tab-sales" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Punto de Venta / Registro de Cobro</h1>
+              <p class="crm-view-desc">Registra el cobro de servicios, propinas en tarjeta y emisión de comprobantes digitales.</p>
+            </div>
+          </div>
+
+          <div class="pos-grid">
+            <!-- Left: POS Form -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">💳 Registrar Cobro de Servicio</h3>
+              <form id="form-pos-sale">
+                <div class="form-group">
+                  <label class="form-label">Clienta *</label>
+                  <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input" placeholder="Nombre de la clienta" required>
+                  <datalist id="clients-datalist-pos"></datalist>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Especialista que atendió *</label>
+                    <select id="pos-specialist-select" class="form-select" required>
+                      <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
+                      <option value="Cielo">💅 Cielo (Nail Artist & Esteticista)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Fecha *</label>
+                    <input type="date" id="pos-date-input" class="form-input" required>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Servicio Realizado *</label>
+                  <input type="text" id="pos-service-input" list="services-datalist-pos" class="form-input" placeholder="Ej. Manicure Gel UV, Mechas..." required>
+                  <datalist id="services-datalist-pos"></datalist>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Monto del Servicio (S/) *</label>
+                    <input type="number" step="0.5" id="pos-amount-input" class="form-input" placeholder="0.00" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Método de Pago *</label>
+                    <select id="pos-payment-method" class="form-select" required>
+                      <option value="POS">💳 Tarjeta (POS)</option>
+                      <option value="Efectivo">💵 Efectivo</option>
+                      <option value="Yape">📱 Yape</option>
+                      <option value="Plin">📱 Plin</option>
+                      <option value="Transferencia">🏦 Transferencia BCP/BBVA</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Propina en Tarjeta (S/) (Opcional)</label>
+                    <input type="number" step="0.5" id="pos-tip-input" class="form-input" placeholder="0.00">
+                    <span class="text-xs text-muted">100% íntegro para la especialista</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Teléfono de la Clienta</label>
+                    <input type="tel" id="pos-phone-input" class="form-input" placeholder="Ej. 971988386">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Fórmula Técnica / Observaciones</label>
+                  <textarea id="pos-notes-input" class="form-textarea" rows="2" placeholder="Tono aplicado, esmalte utilizado, etc."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary w-full" style="justify-content: center;">
+                  <span>💳 Finalizar Venta & Emitir Ticket</span> ✨
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Today Sales Feed -->
+            <div class="dashboard-card">
+              <div class="dash-card-header">
+                <div>
+                  <h3 class="dash-card-title">🧾 Cobros Registrados</h3>
+                  <p class="text-xs text-muted">Historial de pagos del día.</p>
+                </div>
+                <input type="date" id="sales-filter-date" class="form-input input-compact">
+              </div>
+
+              <div class="table-responsive mt-3">
+                <table class="lusso-table">
+                  <thead>
+                    <tr>
+                      <th>Hora / Fecha</th>
+                      <th>Clienta</th>
+                      <th>Servicio</th>
+                      <th>Especialista</th>
+                      <th>Monto</th>
+                      <th>Medio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pos-today-sales-body">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 5: INVENTORY OF SUPPLIES -->
+        <section id="tab-inventory" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Inventario & Stock de Insumos</h1>
+              <p class="crm-view-desc">Control de stock de tintes Alfaparf, esmaltes OPI, oxidantes, guantes y descartables.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-primary" onclick="window.lussoCRM.openNewInventoryModal()">
+                <span>+ Nuevo Insumo</span> 📦
+              </button>
+            </div>
+          </div>
+
+          <div class="table-filters-row mb-3">
+            <div class="filter-search-box">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="inventory-search-input" class="filter-input" placeholder="Buscar insumo por nombre, marca o proveedor...">
+            </div>
+            <div class="filter-selects-group">
+              <select id="inventory-category-filter" class="filter-select" onchange="window.lussoCRM.filterInventoryByCategory(this.value)">
+                <option value="all">Todas las Categorías</option>
+                <option value="Capilar">Capilar</option>
+                <option value="Uñas">Uñas</option>
+                <option value="Descartables">Descartables</option>
+                <option value="Bebidas">Bebidas</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="lusso-table">
+                <thead>
+                  <tr>
+                    <th>Insumo / Producto</th>
+                    <th>Categoría</th>
+                    <th>Marca</th>
+                    <th>Stock Actual</th>
+                    <th>Mínimo</th>
+                    <th>Estado</th>
+                    <th>Proveedor</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="inventory-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 6: EXPENSES & PETTY CASH (🔒 DUEÑA) -->
+        <section id="tab-expenses" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Control de Gastos & Facturas (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Registro de caja chica diaria y facturas de proveedores (Alfaparf, Probela, Luz, Alquiler).</p>
+            </div>
+          </div>
+
+          <div class="sales-summary-ribbon mb-4">
+            <div class="sales-summary-box">
+              <div class="summary-box-label">Gastos Caja Chica</div>
+              <div id="summary-petty-cash" class="summary-box-val text-red">S/ 0.00</div>
+            </div>
+            <div class="sales-summary-box">
+              <div class="summary-box-label">Facturas Proveedores</div>
+              <div id="summary-invoices" class="summary-box-val text-red">S/ 0.00</div>
+            </div>
+            <div class="sales-summary-box">
+              <div class="summary-box-label">Total Egresos</div>
+              <div id="summary-all-expenses" class="summary-box-val text-burgundy">S/ 0.00</div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid-2">
+            <!-- Petty Cash Box -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Gastos de Caja Chica</h3>
+              <form id="form-petty-cash" class="mb-4">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <input type="date" id="caja-date-input" class="form-input" required>
+                  </div>
+                  <div class="form-group">
+                    <input type="number" step="0.5" id="caja-amount-input" class="form-input" placeholder="Monto S/" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="caja-desc-input" class="form-input" placeholder="Descripción (ej. Movilidad, agua, propina...)" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="caja-notes-input" class="form-input" placeholder="Notas adicionales">
+                </div>
+                <button type="submit" class="btn-outline w-full" style="width: 100%; justify-content: center;">
+                  + Registrar Salida de Caja Chica
+                </button>
+              </form>
+
+              <div class="card-table-wrapper">
+                <table class="lusso-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Descripción</th>
+                      <th>Monto</th>
+                      <th>Notas</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="petty-cash-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Invoices Box -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">Facturas & Proveedores</h3>
+              <form id="form-invoice" class="mb-4">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <input type="date" id="fact-date-input" class="form-input" required>
+                  </div>
+                  <div class="form-group">
+                    <input type="number" step="0.5" id="fact-amount-input" class="form-input" placeholder="Monto S/" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="fact-desc-input" class="form-input" placeholder="Proveedor / Servicio (ej. Alfaparf, Probela, Luz del Sur...)" required>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="fact-notes-input" class="form-input" placeholder="N° de Factura o detalle">
+                </div>
+                <button type="submit" class="btn-outline w-full" style="width: 100%; justify-content: center;">
+                  + Registrar Factura
+                </button>
+              </form>
+
+              <div class="card-table-wrapper">
+                <table class="lusso-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Proveedor</th>
+                      <th>Monto</th>
+                      <th>Factura / Notas</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoices-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 7: ASISTENCIA Y NÓMINA BASE 30 DÍAS (🔒 DUEÑA) -->
+        <section id="tab-payroll" class="crm-tab-content">
+          <div class="crm-view-header">
+            <div>
+              <h1 class="crm-view-title">👥 Asistencia, Faltas y Liquidación de Pagos (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Cálculo legal base 30 días, descuentos por inasistencia, compensación de feriados y propinas en tarjeta 100% íntegras.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-outline" onclick="window.lussoCRM.openPayrollPdfModal()">
+                <span>📄 Boleta / Reporte PDF</span>
+              </button>
+              <button class="btn-outline" onclick="window.lussoCRM.openStaffSalaryModal()">
+                <span>⚙️ Configurar Sueldos Base</span>
+              </button>
+              <button class="btn-primary" onclick="window.lussoCRM.openNewAbsenceModal()">
+                <span>+ Registrar Falta / Novedad</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Controls: Month & Specialist Filters -->
+          <div class="payroll-controls-bar mb-4">
+            <div class="payroll-filter-item">
+              <label class="form-label text-xs">Mes de Liquidación</label>
+              <input type="month" id="payroll-month-selector" class="form-input" value="2026-08">
+            </div>
+            <div class="payroll-filter-item">
+              <label class="form-label text-xs">Filtrar Colaboradora</label>
+              <select id="payroll-specialist-filter" class="form-select">
+                <option value="all">Ver Todas (Kiara & Cielo)</option>
+                <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
+                <option value="Cielo">💅 Cielo (Nail Artist)</option>
+              </select>
+            </div>
+            <div class="payroll-legal-tag">
+              <span>🇵🇪 Base Legal: <strong>30 días</strong> (Tarifa/día = Sueldo / 30)</span>
+            </div>
+          </div>
+
+          <!-- Cards Grid: Liquidación de Fin de Mes por Trabajadora -->
+          <div id="payroll-cards-container" class="payroll-cards-grid mb-4">
+            <!-- Rendered dynamically by crm.js -->
+          </div>
+
+          <!-- Table: Detalle de Faltas, Feriados y Propinas del Mes -->
+          <div class="dashboard-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📋 Registro Detallado de Novedades del Mes</h3>
+                <p class="text-xs text-muted">Historial de inasistencias, días feriados acordados y propinas en tarjeta.</p>
+              </div>
+              <span id="payroll-records-badge" class="badge-tag">0 registros</span>
+            </div>
+            <div class="table-responsive">
+              <table class="lusso-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Colaboradora</th>
+                    <th>Tipo de Registro</th>
+                    <th>Motivo / Justificación</th>
+                    <th>Monto / Impacto</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="payroll-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 8: BACKUP & SETTINGS (🔒 DUEÑA) -->
+        <section id="tab-backup" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">Respaldo y Seguridad de Datos (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Descarga una copia completa de tu base de datos o restaura registros anteriores.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-grid-2">
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-2">Exportar Base de Datos</h3>
+              <p class="text-muted text-sm mb-4">Descarga un archivo seguro `.json` con todas las clientas, ventas, inventario y gastos para guardarlo en tu tablet o computadora.</p>
+              <button onclick="window.lussoCRM.handleExportBackup()" class="btn-primary">
+                💾 Descargar Copia de Seguridad Ahora
+              </button>
+            </div>
+
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-2">Restaurar Copia de Seguridad</h3>
+              <p class="text-muted text-sm mb-4">Carga un archivo de respaldo `.json` previamente exportado para recuperar todos los datos.</p>
+              <input type="file" id="input-import-backup" accept=".json" class="form-input mb-2">
+            </div>
+          </div>
+
+          <div class="dashboard-card mt-4" style="border-left: 4px solid var(--amber);">
+            <h3 class="dash-card-title text-amber mb-2">Zona de Mantenimiento</h3>
+            <p class="text-muted text-sm mb-3">Si necesitas volver al estado inicial del archivo consolidado 2026 (213 clientas y 492 transacciones originales), puedes restablecer el sistema.</p>
+            <button id="btn-reset-data" class="btn-outline text-red" onclick="if(confirm('¿Deseas restablecer los datos originales de 2026? Se perderán las modificaciones locales.')) { window.lussoDB.resetToDefaults(); window.lussoCRM.refreshAll(); }">
+              ⚠️ Restaurar Datos de Fábrica 2026
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ================= CLIENT 360° DRAWER ================= -->
+  <div id="drawer-backdrop" class="drawer-backdrop"></div>
+  <aside id="client-drawer" class="client-drawer">
+    <div class="drawer-header">
+      <div>
+        <h2 id="drawer-client-name" class="drawer-client-name">Nombre de Clienta</h2>
+        <div id="drawer-client-phone" class="text-sm text-muted">📱 -</div>
+        <div id="drawer-client-tag" class="mt-1"></div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <a id="drawer-client-wa-btn" href="#" target="_blank" class="btn-icon text-emerald" title="Enviar WhatsApp">💬</a>
+        <button id="btn-close-client-drawer" class="btn-icon" title="Cerrar">✕</button>
+      </div>
+    </div>
+
+    <div class="drawer-content">
+      <!-- 4 Stats Ribbon -->
+      <div class="drawer-stats-grid">
+        <div class="drawer-stat-item">
+          <div class="drawer-stat-title">Total Gastado</div>
+          <div id="drawer-stat-spent" class="drawer-stat-val text-primary">S/ 0.00</div>
+        </div>
+        <div class="drawer-stat-item">
+          <div class="drawer-stat-title">Visitas</div>
+          <div id="drawer-stat-visits" class="drawer-stat-val">0</div>
+        </div>
+        <div class="drawer-stat-item">
+          <div class="drawer-stat-title">Ticket Prom.</div>
+          <div id="drawer-stat-avg" class="drawer-stat-val">S/ 0.00</div>
+        </div>
+        <div class="drawer-stat-item">
+          <div class="drawer-stat-title">Última Cita</div>
+          <div id="drawer-stat-last" class="drawer-stat-val text-xs">-</div>
+        </div>
+      </div>
+
+      <!-- Technical Notes & Formulas -->
+      <div class="form-group mb-4">
+        <div class="drawer-section-title">
+          <span>📝 Ficha Técnica & Fórmulas</span>
+        </div>
+        <textarea id="drawer-tech-notes" class="form-textarea" rows="3" placeholder="Fórmulas de tinte (ej. 7.1 + 8.13), tipo de uña, alergias o preferencias de la clienta..."></textarea>
+        <button onclick="window.lussoCRM.saveTechnicalNotesFromDrawer()" class="btn-sm btn-outline mt-2">
+          Guardar Notas Técnicas
+        </button>
+      </div>
+
+      <!-- Chronological Timeline of Services -->
+      <div class="drawer-section-title">
+        <span>📜 Historial Completo de Servicios & Cobros</span>
+      </div>
+      <div id="drawer-history-timeline">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </aside>
+
+
+  <!-- ================= MODAL: MANUAL APPOINTMENT (AGENDA) ================= -->
+  <div id="modal-appointment-manual" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-manual-apt-title" class="modal-title">Registrar Cita en Agenda</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-manual-appointment">
+        <input type="hidden" id="manual-apt-id">
+        <div class="modal-body">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Nombre de la Clienta *</label>
+              <input type="text" id="manual-apt-name" list="clients-datalist-manual" class="form-input" placeholder="Nombre completo" required>
+              <datalist id="clients-datalist-manual"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Celular (WhatsApp)</label>
+              <input type="tel" id="manual-apt-phone" class="form-input" placeholder="Ej. 971988386">
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Servicio a Realizar *</label>
+              <input type="text" id="manual-apt-service" list="services-datalist-manual" class="form-input" placeholder="Ej. Manicure Gel UV, Mechas..." required>
+              <datalist id="services-datalist-manual"></datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Especialista Asignada *</label>
+              <select id="manual-apt-specialist" class="form-select" required>
+                <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
+                <option value="Cielo">💅 Cielo (Nail Artist & Esteticista)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Fecha *</label>
+              <input type="date" id="manual-apt-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hora *</label>
+              <select id="manual-apt-time" class="form-select" required>
+                <option value="10:00 AM">10:00 AM (Sáb)</option>
+                <option value="10:30 AM">10:30 AM (Sáb)</option>
+                <option value="11:00 AM">11:00 AM</option>
+                <option value="11:30 AM">11:30 AM</option>
+                <option value="12:30 PM">12:30 PM</option>
+                <option value="02:00 PM">02:00 PM</option>
+                <option value="03:30 PM">03:30 PM</option>
+                <option value="05:00 PM">05:00 PM</option>
+                <option value="06:30 PM">06:30 PM</option>
+                <option value="07:30 PM">07:30 PM</option>
+                <option value="08:00 PM">08:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Estado de la Cita</label>
+              <select id="manual-apt-status" class="form-select">
+                <option value="confirmed">✅ Confirmada</option>
+                <option value="pending">⏳ Pendiente de Confirmar</option>
+                <option value="completed">💅 Atendida</option>
+                <option value="cancelled">❌ Cancelada</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Monto Estimado (S/)</label>
+              <input type="number" step="1" id="manual-apt-amount" class="form-input" placeholder="60">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notas / Fórmulas Técnicas</label>
+            <textarea id="manual-apt-notes" class="form-textarea" rows="2" placeholder="Detalles de la cita, tono de tinte, uña, etc."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar en Agenda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: CLIENT NEW / EDIT ================= -->
+  <div id="modal-client" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-client-title" class="modal-title">Registrar Nueva Clienta</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-new-client">
+        <input type="hidden" id="client-id-input">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nombre y Apellido *</label>
+            <input type="text" id="client-name-input" class="form-input" required placeholder="Ej. Camila Navarro">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Número de Celular</label>
+            <input type="text" id="client-phone-input" class="form-input" placeholder="Ej. 993511745">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo Electrónico (Opcional)</label>
+            <input type="email" id="client-email-input" class="form-input" placeholder="ejemplo@correo.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fórmulas Técnicas / Notas</label>
+            <textarea id="client-notes-input" class="form-textarea" rows="2" placeholder="Tono de tinte, tipo de uña, observaciones..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Clienta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: NEW / EDIT INVENTORY ITEM ================= -->
+  <div id="modal-inventory" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-inventory-title" class="modal-title">Registrar Nuevo Insumo</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-new-inventory">
+        <input type="hidden" id="inv-id-input">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nombre del Insumo / Producto *</label>
+            <input type="text" id="inv-name-input" class="form-input" required placeholder="Ej. Tinte Alfaparf 7.1 Rubio Cenizo">
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Categoría</label>
+              <select id="inv-category-select" class="form-select">
+                <option value="Capilar">Capilar</option>
+                <option value="Uñas">Uñas</option>
+                <option value="Descartables">Descartables</option>
+                <option value="Bebidas">Bebidas</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marca</label>
+              <input type="text" id="inv-brand-input" class="form-input" placeholder="Ej. Alfaparf, OPI...">
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Stock Inicial</label>
+              <input type="number" id="inv-stock-input" class="form-input" value="5" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stock Mínimo (Alerta)</label>
+              <input type="number" id="inv-minstock-input" class="form-input" value="2" required>
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Unidad de Medida</label>
+              <input type="text" id="inv-unit-input" class="form-input" value="Unidades" placeholder="Tubos, Frascos, Litros...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Costo Unitario (S/)</label>
+              <input type="number" step="0.5" id="inv-cost-input" class="form-input" value="0.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Proveedor</label>
+            <input type="text" id="inv-supplier-input" class="form-input" placeholder="Ej. Probela, Alfaparf...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Insumo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: ADJUST STOCK ================= -->
+  <div id="modal-adjust-stock" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Ajustar Stock de Insumo</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-adjust-stock">
+        <input type="hidden" id="adjust-inv-id">
+        <div class="modal-body">
+          <p class="mb-3">
+            Insumo: <strong id="adjust-inv-name" class="text-burgundy"></strong><br>
+            Stock actual: <strong id="adjust-current-stock" class="text-primary"></strong>
+          </p>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Tipo de Movimiento</label>
+              <select id="adjust-action-select" class="form-select">
+                <option value="add">➕ Entrada / Compra (+)</option>
+                <option value="subtract">➖ Salida / Consumo (-)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cantidad</label>
+              <input type="number" step="1" id="adjust-qty-input" class="form-input" placeholder="1" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Motivo o N° de Factura</label>
+            <input type="text" id="adjust-reason-input" class="form-input" placeholder="Ej. Factura 1510 Probela, Merma, Uso en servicio...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Aplicar Ajuste</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: REGISTER ABSENCE / FERIADO / PROPINAS ================= -->
+  <div id="modal-absence-register" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-absence-title" class="modal-title">Registrar Novedad de Asistencia o Pago</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-absence-register">
+        <input type="hidden" id="absence-id-input">
+        <div class="modal-body">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Colaboradora *</label>
+              <select id="absence-specialist-select" class="form-select" required>
+                <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
+                <option value="Cielo">💅 Cielo (Nail Artist & Esteticista)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fecha del Evento *</label>
+              <input type="date" id="absence-date-input" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tipo de Novedad / Evento *</label>
+            <select id="absence-type-select" class="form-select" required onchange="window.lussoCRM && window.lussoCRM.handleAbsenceTypeChange(this.value)">
+              <option value="falta_completa">❌ Inasistencia / Falta Día Completo (Descuenta 1 día legal: Sueldo / 30)</option>
+              <option value="medio_dia">⏳ Permiso Medio Día (Descuenta 0.5 día legal: Sueldo / 60)</option>
+              <option value="tardanza">⏰ Tardanza / Penalidad (Monto fijo a descontar)</option>
+              <option value="permiso_con_goce">✅ Permiso Justificado con Goce (Sin descuento S/ 0)</option>
+              <option value="feriado_trabajado">🎉 Día Feriado Trabajado Acordado (+1 día a favor)</option>
+              <option value="propina_tarjeta">💳 Propinas de Clientas en Tarjeta/POS (+100% íntegro)</option>
+              <option value="bono">⭐ Bono Adicional por Desempeño / Ventas (+)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Motivo o Justificación *</label>
+            <input type="text" id="absence-reason-input" class="form-input" placeholder="Ej. Trámite personal, Feriado 15 Agosto trabajado, Propinas semana 3..." required>
+          </div>
+
+          <div id="absence-custom-amount-group" class="form-group hidden">
+            <label id="absence-amount-label" class="form-label">Monto Personalizado (S/)</label>
+            <input type="number" step="0.5" id="absence-amount-input" class="form-input" placeholder="0.00">
+            <p id="absence-amount-hint" class="text-xs text-muted mt-1">El monto se calculará automáticamente si lo dejas vacío según el sueldo base.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notas Adicionales (Opcional)</label>
+            <textarea id="absence-notes-input" class="form-textarea" rows="2" placeholder="Detalles del acuerdo interno, comprobante o notas..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: STAFF SALARY CONFIG ================= -->
+  <div id="modal-staff-salary" class="lusso-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Configuración de Sueldos Base y Nómina</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-staff-salary">
+        <div class="modal-body">
+          <p class="text-sm text-muted mb-3">
+            Ajusta los sueldos base mensuales de Kiara y Cielo. Los cálculos de faltas y feriados se realizan sobre una base legal de <strong>30 días</strong> por mes.
+          </p>
+
+          <div class="form-row-2 mb-3">
+            <div class="form-group">
+              <label class="form-label">💇‍♀️ Sueldo Base Mensual - Kiara (S/)</label>
+              <input type="number" step="10" id="salary-kiara-input" class="form-input" value="1600" required>
+              <span class="text-xs text-muted">Tarifa diaria: ~S/ <span id="kiara-daily-calc">53.33</span>/día</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">💅 Sueldo Base Mensual - Cielo (S/)</label>
+              <input type="number" step="10" id="salary-cielo-input" class="form-input" value="1400" required>
+              <span class="text-xs text-muted">Tarifa diaria: ~S/ <span id="cielo-daily-calc">46.67</span>/día</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Base de Días para Cálculo Laboral</label>
+            <input type="number" id="salary-days-base-input" class="form-input" value="30" readonly style="background: #f8fafc;">
+            <p class="text-xs text-muted mt-1">🇵🇪 Establecido en 30 días según la normativa contable y laboral peruana.</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Configuración</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: ADMIN PIN UNLOCK (TABLET KEYPAD OPTIMIZED) ================= -->
+  <div id="modal-admin-pin" class="lusso-modal">
+    <div class="modal-card modal-pin-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Acceso de Administración (Dueña)</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body text-center py-3">
+        <div class="pin-shield-icon">🔒</div>
+        <p class="text-sm text-muted mb-2">
+          Ingresa el PIN de seguridad para desbloquear métricas financieras, gastos y nómina.
+        </p>
+
+        <!-- Visual PIN Dots Display -->
+        <div class="pin-dots-display mb-3">
+          <span class="pin-dot" id="pin-dot-1"></span>
+          <span class="pin-dot" id="pin-dot-2"></span>
+          <span class="pin-dot" id="pin-dot-3"></span>
+          <span class="pin-dot" id="pin-dot-4"></span>
+        </div>
+
+        <!-- 11" Tablet Touch Keypad -->
+        <div class="pin-keypad-grid mb-2">
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('1')">1</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('2')">2</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('3')">3</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('4')">4</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('5')">5</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('6')">6</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('7')">7</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('8')">8</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('9')">9</button>
+          <button type="button" class="keypad-btn keypad-clear" onclick="window.lussoCRM.handleKeypadClear()">C</button>
+          <button type="button" class="keypad-btn" onclick="window.lussoCRM.handleKeypadPress('0')">0</button>
+          <button type="button" class="keypad-btn keypad-backspace" onclick="window.lussoCRM.handleKeypadBackspace()">⌫</button>
+        </div>
+
+        <p class="text-xs text-muted mt-1">PIN maestro autorizado: <strong>2026</strong></p>
+        <div id="pin-error-msg" class="text-xs text-red mt-1 hidden font-bold">⚠️ PIN incorrecto. Inténtalo de nuevo.</div>
+      </div>
+      <div class="modal-footer justify-center" style="gap: 12px;">
+        <button type="button" class="btn-outline btn-modal-cancel">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="window.lussoCRM.validateKeypadPin()">
+          <span>🔓 Desbloquear</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: TICKET / RECEIPT COMPROBANTE POS ================= -->
+  <div id="modal-ticket-receipt" class="lusso-modal">
+    <div class="modal-card modal-receipt-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Comprobante de Atención</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="receipt-paper" id="receipt-print-area">
+          <div class="receipt-header">
+            <h4>✨ LUSSO BEAUTY SALÓN</h4>
+            <p>Calle Berlín 481, Miraflores — Lima</p>
+            <p>WhatsApp: +51 971 988 386</p>
+            <div class="receipt-divider">--------------------------------</div>
+          </div>
+          <div class="receipt-body">
+            <div class="receipt-row"><span>Ticket N°:</span> <strong id="receipt-ticket-id">-</strong></div>
+            <div class="receipt-row"><span>Fecha / Hora:</span> <span id="receipt-date">-</span></div>
+            <div class="receipt-row"><span>Clienta:</span> <strong id="receipt-client">-</strong></div>
+            <div class="receipt-row"><span>Especialista:</span> <span id="receipt-specialist">-</span></div>
+            <div class="receipt-divider">--------------------------------</div>
+            <div class="receipt-row"><span>Servicio:</span> <span id="receipt-service">-</span></div>
+            <div class="receipt-row"><span>Importe:</span> <strong id="receipt-amount">S/ 0.00</strong></div>
+            <div class="receipt-row" id="receipt-tip-row"><span>Propina Tarjeta:</span> <span id="receipt-tip">S/ 0.00</span></div>
+            <div class="receipt-row"><span>Medio de Pago:</span> <span id="receipt-payment">-</span></div>
+            <div class="receipt-divider">--------------------------------</div>
+            <div class="receipt-row receipt-total"><span>TOTAL COBRADO:</span> <strong id="receipt-total">S/ 0.00</strong></div>
+          </div>
+          <div class="receipt-footer">
+            <p>¡Gracias por tu preferencia! 💖</p>
+            <p>Síguenos en Instagram @lussostudio</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn-outline btn-modal-cancel">Cerrar</button>
+        <button type="button" id="btn-share-receipt-wa" class="btn-primary">
+          <span>💬 Enviar Comprobante por WhatsApp</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL: PAYROLL PDF BOLETA & LIQUIDACIÓN ================= -->
+  <div id="modal-payroll-pdf" class="lusso-modal">
+    <div class="modal-card modal-payroll-pdf-card">
+      <div class="modal-header">
+        <h3 class="modal-title">📄 Boleta de Liquidación de Remuneraciones</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="payroll-sheet-print" class="payroll-sheet-paper">
+          <!-- Populated dynamically by crm.js renderPayrollPdf() -->
+        </div>
+      </div>
+      <div class="modal-footer justify-between">
+        <button type="button" class="btn-outline btn-modal-cancel">Cerrar</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btn-share-payroll-pdf-wa" class="btn-outline text-emerald">
+            <span>💬 Enviar Resumen WhatsApp</span>
+          </button>
+          <button type="button" onclick="window.lussoCRM && window.lussoCRM.printPayrollReport()" class="btn-primary">
+            <span>🖨️ Imprimir / Guardar PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="./js/data.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/crm.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
