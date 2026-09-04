@@ -78,13 +78,17 @@
               <span class="crm-nav-icon">💳</span>
               <span>Punto de Venta / POS</span>
             </li>
+            <li class="crm-nav-item" data-tab="caja">
+              <span class="crm-nav-icon">💵</span>
+              <span>Caja Chica & Cuadre</span>
+            </li>
             <li class="crm-nav-item" data-tab="inventory">
               <span class="crm-nav-icon">📦</span>
               <span>Inventario de Insumos</span>
             </li>
             <li class="crm-nav-item nav-item-locked" data-tab="expenses">
-              <span class="crm-nav-icon">💰</span>
-              <span>Gastos & Facturas</span>
+              <span class="crm-nav-icon">📊</span>
+              <span>Egresos & Balance (Dueña)</span>
             </li>
             <li class="crm-nav-item nav-item-locked" data-tab="payroll">
               <span class="crm-nav-icon">👥</span>
@@ -520,54 +524,95 @@
         </section>
 
 
-        <!-- TAB 6: EXPENSES & PETTY CASH (🔒 DUEÑA) -->
-        <section id="tab-expenses" class="crm-tab-content">
+        <!-- TAB 5: CAJA CHICA & CUADRE DE EFECTIVO (ESTILISTAS & COUNTER) -->
+        <section id="tab-caja" class="crm-tab-content">
           <div class="crm-header-row">
             <div>
-              <h1 class="crm-view-title">Control de Gastos & Facturas (🔒 Dueña)</h1>
-              <p class="crm-view-desc">Registro de caja chica diaria y facturas de proveedores (Alfaparf, Probela, Luz, Alquiler).</p>
+              <h1 class="crm-view-title">💵 Caja Chica & Cuadre de Efectivo</h1>
+              <p class="crm-view-desc">Control de dinero en efectivo, gastos menores, vueltos y cuadre de cierre de turno para Kiara y Cielo.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-outline" onclick="window.lussoCRM && window.lussoCRM.handlePromptInitialCashBase()">
+                <span>⚙️ Ajustar Fondo Inicial</span>
+              </button>
             </div>
           </div>
 
-          <div class="sales-summary-ribbon mb-4">
-            <div class="sales-summary-box">
-              <div class="summary-box-label">Gastos Caja Chica</div>
-              <div id="summary-petty-cash" class="summary-box-val text-red">S/ 0.00</div>
+          <!-- 4 Stat Cards for Cash Register -->
+          <div class="caja-overview-grid mb-4">
+            <div class="caja-stat-card card-burgundy">
+              <span class="caja-stat-title">📥 Fondo Inicial en Gaveta</span>
+              <span id="caja-stat-initial" class="caja-stat-value">S/ 100.00</span>
+              <span class="caja-stat-desc">Fondo base asignado para dar vueltos</span>
             </div>
-            <div class="sales-summary-box">
-              <div class="summary-box-label">Facturas Proveedores</div>
-              <div id="summary-invoices" class="summary-box-val text-red">S/ 0.00</div>
+            <div class="caja-stat-card card-emerald">
+              <span class="caja-stat-title">💵 Cobros en Efectivo Hoy</span>
+              <span id="caja-stat-sales-cash" class="caja-stat-value text-emerald">S/ 0.00</span>
+              <span id="caja-stat-sales-count" class="caja-stat-desc">0 servicios cobrados en efectivo</span>
             </div>
-            <div class="sales-summary-box">
-              <div class="summary-box-label">Total Egresos</div>
-              <div id="summary-all-expenses" class="summary-box-val text-burgundy">S/ 0.00</div>
+            <div class="caja-stat-card card-red">
+              <span class="caja-stat-title">🔻 Salidas de Caja Chica Hoy</span>
+              <span id="caja-stat-expenses" class="caja-stat-value text-red">S/ 0.00</span>
+              <span id="caja-stat-expenses-count" class="caja-stat-desc">0 salidas registradas</span>
+            </div>
+            <div class="caja-stat-card card-amber">
+              <span class="caja-stat-title">💰 Efectivo Esperado en Gaveta</span>
+              <span id="caja-stat-expected" class="caja-stat-value text-amber">S/ 100.00</span>
+              <span class="caja-stat-desc">Fondo + Cobros - Salidas</span>
             </div>
           </div>
 
-          <div class="dashboard-grid-2">
-            <!-- Petty Cash Box -->
+          <div class="cuadre-grid-2">
+            <!-- Left: Registrar Salida/Entrada de Caja Chica -->
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">Gastos de Caja Chica</h3>
+              <h3 class="dash-card-title mb-3">📝 Registrar Movimiento de Caja Chica</h3>
               <form id="form-petty-cash" class="mb-4">
                 <div class="form-row-2">
                   <div class="form-group">
+                    <label class="form-label">Fecha *</label>
                     <input type="date" id="caja-date-input" class="form-input" required>
                   </div>
                   <div class="form-group">
-                    <input type="number" step="0.5" id="caja-amount-input" class="form-input" placeholder="Monto S/" required>
+                    <label class="form-label">Monto (S/) *</label>
+                    <input type="number" step="0.5" id="caja-amount-input" class="form-input" placeholder="0.00" required>
                   </div>
                 </div>
+
                 <div class="form-group">
-                  <input type="text" id="caja-desc-input" class="form-input" placeholder="Descripción (ej. Movilidad, agua, propina...)" required>
+                  <label class="form-label">Descripción / Motivo *</label>
+                  <input type="text" id="caja-desc-input" class="form-input" placeholder="Ej. Vuelto clienta, Movilidad, Compra café, Delivery..." required>
+                  <!-- Quick suggestion chips -->
+                  <div class="category-pills-row mt-2" style="justify-content: flex-start; gap: 4px;">
+                    <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('caja-desc-input').value = 'Vuelto para clienta';">Vuelto</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('caja-desc-input').value = 'Taxi / Movilidad compras';">Movilidad</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('caja-desc-input').value = 'Café, agua y amenidades clientas';">Café/Agua</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('caja-desc-input').value = 'Útiles de limpieza y desinfección';">Limpieza</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('caja-desc-input').value = 'Compra de insumo urgente';">Insumo Urgente</button>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <input type="text" id="caja-notes-input" class="form-input" placeholder="Notas adicionales">
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Responsable *</label>
+                    <select id="caja-specialist-select" class="form-select">
+                      <option value="Kiara">Kiara</option>
+                      <option value="Cielo">Cielo</option>
+                      <option value="Dueña">Dueña / Administración</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Detalle o N° de Boleta</label>
+                    <input type="text" id="caja-notes-input" class="form-input" placeholder="Opcional">
+                  </div>
                 </div>
-                <button type="submit" class="btn-outline w-full" style="width: 100%; justify-content: center;">
-                  + Registrar Salida de Caja Chica
+
+                <button type="submit" class="btn-primary w-full" style="justify-content: center;">
+                  <span>🔻 Guardar Salida de Efectivo</span>
                 </button>
               </form>
 
+              <!-- Table of petty cash movements -->
+              <h4 class="font-bold text-dark mb-2">📋 Movimientos de Caja Chica Registrados</h4>
               <div class="card-table-wrapper">
                 <table class="lusso-table">
                   <thead>
@@ -575,8 +620,8 @@
                       <th>Fecha</th>
                       <th>Descripción</th>
                       <th>Monto</th>
-                      <th>Notas</th>
-                      <th></th>
+                      <th>Resp.</th>
+                      <th>Acción</th>
                     </tr>
                   </thead>
                   <tbody id="petty-cash-table-body"></tbody>
@@ -584,38 +629,188 @@
               </div>
             </div>
 
-            <!-- Invoices Box -->
+            <!-- Right: Interactive Cash Count (Cuadre de Cierre de Turno) -->
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">Facturas & Proveedores</h3>
+              <h3 class="dash-card-title mb-2">🧮 Calculadora de Cuadre de Caja (Cierre)</h3>
+              <p class="text-xs text-muted mb-3">Cuenta los billetes y monedas que tienes físicamente en la gaveta para verificar el cuadre exacto.</p>
+
+              <div class="denominations-list">
+                <div class="denomination-row">
+                  <span class="denom-label">💵 Billetes de S/ 200</span>
+                  <input type="number" min="0" value="0" class="denom-input" data-val="200" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-200">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">💵 Billetes de S/ 100</span>
+                  <input type="number" min="0" value="0" class="denom-input" data-val="100" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-100">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">💵 Billetes de S/ 50</span>
+                  <input type="number" min="0" value="0" class="denom-input" data-val="50" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-50">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">💵 Billetes de S/ 20</span>
+                  <input type="number" min="0" value="0" class="denom-input" data-val="20" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-20">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">💵 Billetes de S/ 10</span>
+                  <input type="number" min="0" value="0" class="denom-input" data-val="10" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-10">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">🪙 Monedas de S/ 5 y S/ 2</span>
+                  <input type="number" step="1" min="0" value="0" class="denom-input" data-val="1" id="denom-coins-major" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-coins-major">S/ 0.00</span>
+                </div>
+                <div class="denomination-row">
+                  <span class="denom-label">🪙 Monedas de S/ 1, 0.50, 0.20</span>
+                  <input type="number" step="0.1" min="0" value="0" class="denom-input" data-val="1" id="denom-coins-minor" oninput="window.lussoCRM && window.lussoCRM.handleCuadreInput()">
+                  <span class="denom-subtotal" id="denom-sub-coins-minor">S/ 0.00</span>
+                </div>
+              </div>
+
+              <!-- Cuadre Results Summary -->
+              <div id="cuadre-result-container" class="cuadre-result-box is-balanced">
+                <div class="text-sm font-bold" id="cuadre-status-title">✅ Caja Cuadrada</div>
+                <div class="text-xs mt-1" id="cuadre-status-desc">Total contado en mano coincide con el efectivo esperado del sistema.</div>
+                <div class="mt-2 text-sm" style="display: flex; justify-content: space-around;">
+                  <span>Contado: <strong id="cuadre-total-counted" class="font-bold text-dark">S/ 0.00</strong></span>
+                  <span>Esperado: <strong id="cuadre-total-expected" class="font-bold text-dark">S/ 0.00</strong></span>
+                  <span>Diferencia: <strong id="cuadre-total-diff" class="font-bold">S/ 0.00</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 6: EXPENSES, INVOICES & FINANCIAL BALANCE (🔒 DUEÑA) -->
+        <section id="tab-expenses" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">📊 Egresos, Facturas & Balance General (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Resumen financiero mensual del salón: ingresos por servicios vs egresos totales, facturas de proveedores y nómina.</p>
+            </div>
+            <div class="header-action-btns">
+              <input type="month" id="expenses-month-filter" class="filter-select" onchange="window.lussoCRM && window.lussoCRM.renderExpenses()">
+            </div>
+          </div>
+
+          <!-- Executive Financial Balance Hero Card -->
+          <div class="financial-balance-hero">
+            <div class="financial-hero-grid">
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">📈 Ingresos Totales Servicios</div>
+                <div id="fin-total-income" class="fin-hero-val">S/ 0.00</div>
+                <div id="fin-income-sub" class="fin-hero-sub">0 transacciones registradas en POS</div>
+              </div>
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">📉 Total Egresos del Salón</div>
+                <div id="fin-total-expenses" class="fin-hero-val text-red">S/ 0.00</div>
+                <div id="fin-expenses-sub" class="fin-hero-sub">Facturas + Servicios + Nómina + Caja</div>
+              </div>
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">💎 Margen / Utilidad Neta</div>
+                <div id="fin-net-profit" class="fin-hero-val text-glow-green">S/ 0.00</div>
+                <div id="fin-margin-pct" class="fin-hero-sub">0.0% de margen operativo</div>
+              </div>
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">👥 Nómina & Sueldos Base</div>
+                <div id="fin-payroll-total" class="fin-hero-val">S/ 0.00</div>
+                <div class="fin-hero-sub">Kiara & Cielo (Liquidación 30 días)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid-2">
+            <!-- Left: Form for Invoices, Receipts & Salon Expenses -->
+            <div class="dashboard-card">
+              <h3 class="dash-card-title mb-3">📑 Registrar Factura o Egreso General</h3>
               <form id="form-invoice" class="mb-4">
                 <div class="form-row-2">
                   <div class="form-group">
+                    <label class="form-label">Fecha del Comprobante *</label>
                     <input type="date" id="fact-date-input" class="form-input" required>
                   </div>
                   <div class="form-group">
-                    <input type="number" step="0.5" id="fact-amount-input" class="form-input" placeholder="Monto S/" required>
+                    <label class="form-label">Monto del Gasto (S/) *</label>
+                    <input type="number" step="0.5" id="fact-amount-input" class="form-input" placeholder="0.00" required>
                   </div>
                 </div>
-                <div class="form-group">
-                  <input type="text" id="fact-desc-input" class="form-input" placeholder="Proveedor / Servicio (ej. Alfaparf, Probela, Luz del Sur...)" required>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Categoría del Egreso *</label>
+                    <select id="fact-category-select" class="form-select" required>
+                      <option value="Proveedores (Tintes/Insumos)">📦 Proveedores (Tintes Alfaparf, Olaplex, Probela)</option>
+                      <option value="Alquiler Local">🏢 Alquiler Local (Calle Berlín)</option>
+                      <option value="Servicios Básicos (Luz/Agua/Net)">💡 Servicios Básicos (Luz, Agua, Internet)</option>
+                      <option value="Recibos por Honorarios">📄 Recibos por Honorarios / Servicios Terceros</option>
+                      <option value="Mantenimiento & Equipos">🔧 Mantenimiento & Equipos del Salón</option>
+                      <option value="Marketing & Publicidad">📣 Marketing & Publicidad Redes</option>
+                      <option value="Impuestos / SUNAT">🏛️ Impuestos / SUNAT / Contabilidad</option>
+                      <option value="Otros Gastos Operativos">📌 Otros Gastos Operativos</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Medio de Pago *</label>
+                    <select id="fact-payment-method" class="form-select" required>
+                      <option value="Transferencia BCP/BBVA">🏦 Transferencia Bancaria BCP/BBVA</option>
+                      <option value="Tarjeta de Débito/Crédito">💳 Tarjeta Débito / Crédito</option>
+                      <option value="Efectivo">💵 Efectivo</option>
+                      <option value="Yape / Plin">📱 Yape / Plin</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div class="form-group">
-                  <input type="text" id="fact-notes-input" class="form-input" placeholder="N° de Factura o detalle">
+                  <label class="form-label">Proveedor / Beneficiario *</label>
+                  <input type="text" id="fact-desc-input" class="form-input" placeholder="Ej. Alfaparf Milano, Luz del Sur, Propietario..." required>
                 </div>
-                <button type="submit" class="btn-outline w-full" style="width: 100%; justify-content: center;">
-                  + Registrar Factura
+
+                <div class="form-group">
+                  <label class="form-label">N° de Factura / RUC / Observaciones</label>
+                  <input type="text" id="fact-notes-input" class="form-input" placeholder="Ej. Factura F001-00234 o detalle del pago">
+                </div>
+
+                <button type="submit" class="btn-primary w-full" style="justify-content: center;">
+                  <span>📑 Registrar Egreso en el Balance</span>
                 </button>
               </form>
+            </div>
+
+            <!-- Right: Filterable Table of Invoices -->
+            <div class="dashboard-card">
+              <div class="dash-card-header mb-3">
+                <div>
+                  <h3 class="dash-card-title">🧾 Detalle de Egresos Registrados</h3>
+                  <p class="text-xs text-muted">Historial de facturas y egresos mayores.</p>
+                </div>
+                <select id="fact-filter-category" class="filter-select input-compact" onchange="window.lussoCRM && window.lussoCRM.renderExpenses()">
+                  <option value="all">Todas las Categorías</option>
+                  <option value="Proveedores (Tintes/Insumos)">📦 Proveedores</option>
+                  <option value="Alquiler Local">🏢 Alquiler</option>
+                  <option value="Servicios Básicos (Luz/Agua/Net)">💡 Servicios Básicos</option>
+                  <option value="Recibos por Honorarios">📄 Recibos Honorarios</option>
+                  <option value="Mantenimiento & Equipos">🔧 Mantenimiento</option>
+                  <option value="Marketing & Publicidad">📣 Marketing</option>
+                  <option value="Impuestos / SUNAT">🏛️ SUNAT/Contabilidad</option>
+                  <option value="Otros Gastos Operativos">📌 Otros</option>
+                </select>
+              </div>
 
               <div class="card-table-wrapper">
                 <table class="lusso-table">
                   <thead>
                     <tr>
                       <th>Fecha</th>
-                      <th>Proveedor</th>
+                      <th>Proveedor / Categoría</th>
                       <th>Monto</th>
-                      <th>Factura / Notas</th>
-                      <th></th>
+                      <th>Comprobante / Detalle</th>
+                      <th>Acción</th>
                     </tr>
                   </thead>
                   <tbody id="invoices-table-body"></tbody>

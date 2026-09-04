@@ -27,6 +27,7 @@ class LussoCRM {
     try { this.renderClients(); } catch (e) { console.error('Error in renderClients:', e); }
     try { this.renderSales(); } catch (e) { console.error('Error in renderSales:', e); }
     try { this.renderInventory(); } catch (e) { console.error('Error in renderInventory:', e); }
+    try { this.renderCaja(); } catch (e) { console.error('Error in renderCaja:', e); }
     try { this.renderExpenses(); } catch (e) { console.error('Error in renderExpenses:', e); }
     try { this.renderPayroll(); } catch (e) { console.error('Error in renderPayroll:', e); }
     try { this.populateSelects(); } catch (e) { console.error('Error in populateSelects:', e); }
@@ -184,13 +185,55 @@ class LussoCRM {
       });
     }
 
-    // Inventory Filters
+    // Inventory Search & Filters
+    const inventorySearchInput = document.getElementById('inventory-search-input');
+    if (inventorySearchInput) {
+      inventorySearchInput.addEventListener('input', () => this.renderInventory());
+    }
+
     const inventoryCategoryFilter = document.getElementById('inventory-category-filter');
     if (inventoryCategoryFilter) {
       inventoryCategoryFilter.addEventListener('change', (e) => {
         this.inventoryFilterCategory = e.target.value;
         this.renderInventory();
       });
+    }
+
+    // Caja Chica & Cuadre listeners
+    const cajaDateInput = document.getElementById('caja-date-input');
+    if (cajaDateInput) {
+      cajaDateInput.addEventListener('change', () => this.renderCaja());
+    }
+
+    const btnSetInitialBase = document.getElementById('btn-set-initial-base');
+    if (btnSetInitialBase) {
+      btnSetInitialBase.addEventListener('click', () => this.handlePromptInitialCashBase());
+    }
+
+    document.querySelectorAll('.denom-input').forEach(input => {
+      input.addEventListener('input', () => this.handleCuadreInput());
+    });
+
+    document.querySelectorAll('.petty-cash-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        const desc = e.currentTarget.getAttribute('data-desc');
+        const descInput = document.getElementById('caja-desc-input');
+        if (descInput && desc) {
+          descInput.value = desc;
+          document.getElementById('caja-amount-input')?.focus();
+        }
+      });
+    });
+
+    // Expenses & Balance Filters (Dueña)
+    const expensesMonthFilter = document.getElementById('expenses-month-filter');
+    if (expensesMonthFilter) {
+      expensesMonthFilter.addEventListener('change', () => this.renderExpenses());
+    }
+
+    const factFilterCategory = document.getElementById('fact-filter-category');
+    if (factFilterCategory) {
+      factFilterCategory.addEventListener('change', () => this.renderExpenses());
     }
 
     // Form Submissions
@@ -437,6 +480,7 @@ class LussoCRM {
     if (tab === 'clients') this.renderClients();
     if (tab === 'sales') this.renderSales();
     if (tab === 'inventory') this.renderInventory();
+    if (tab === 'caja') this.renderCaja();
     if (tab === 'expenses') this.renderExpenses();
     if (tab === 'payroll') this.renderPayroll();
   }
@@ -448,6 +492,7 @@ class LussoCRM {
     this.renderClients();
     this.renderSales();
     this.renderInventory();
+    this.renderCaja();
     this.renderExpenses();
     this.renderPayroll();
     this.populateSelects();
@@ -1345,17 +1390,19 @@ class LussoCRM {
   // ================= CLIENT DIRECTORY & 360 =================
   renderClients() {
     const clients = window.lussoDB.getClients();
-    const searchVal = (document.getElementById('client-search-input')?.value || '').toLowerCase().trim();
+    const normalizeStr = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const searchVal = normalizeStr(document.getElementById('client-search-input')?.value || '');
     const tableBody = document.getElementById('clients-table-body');
     const countBadge = document.getElementById('client-count-badge') || document.getElementById('clients-count-badge');
     
     if (!tableBody) return;
 
     let filtered = clients.filter(c => {
-      const matchSearch = (c.name || '').toLowerCase().includes(searchVal) ||
+      const matchSearch = !searchVal ||
+        normalizeStr(c.name).includes(searchVal) ||
         (c.phone && c.phone.includes(searchVal)) ||
-        (c.notes && c.notes.toLowerCase().includes(searchVal)) ||
-        (c.technicalNotes && c.technicalNotes.toLowerCase().includes(searchVal));
+        normalizeStr(c.notes).includes(searchVal) ||
+        normalizeStr(c.technicalNotes).includes(searchVal);
 
       if (!matchSearch) return false;
 
@@ -1603,12 +1650,20 @@ class LussoCRM {
     const todayStr = new Date().toISOString().split('T')[0];
     const currentMonth = todayStr.substring(0, 7);
 
-    let filtered = sales;
+    let filtered = [...sales];
     if (this.salesFilterDate === 'today') {
-      filtered = sales.filter(s => s.date === todayStr);
+      filtered = filtered.filter(s => s.date === todayStr);
     } else if (this.salesFilterDate === 'month') {
-      filtered = sales.filter(s => s.date && s.date.startsWith(currentMonth));
+      filtered = filtered.filter(s => s.date && s.date.startsWith(currentMonth));
     }
+
+    // Sort strictly from most recent to oldest
+    filtered.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
 
     const totalAmount = filtered.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
     const cashAmount = filtered.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
@@ -1749,18 +1804,29 @@ class LussoCRM {
   renderInventory() {
     const inventory = window.lussoDB.getInventory();
     const tableBody = document.getElementById('inventory-table-body');
+    const normalizeStr = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const searchVal = normalizeStr(document.getElementById('inventory-search-input')?.value || '');
     if (!tableBody) return;
 
-    let filtered = inventory;
-    if (this.inventoryFilterCategory !== 'all') {
-      filtered = inventory.filter(i => i.category === this.inventoryFilterCategory);
-    }
+    let filtered = inventory.filter(item => {
+      if (this.inventoryFilterCategory !== 'all' && item.category !== this.inventoryFilterCategory) {
+        return false;
+      }
+      if (searchVal) {
+        const match = normalizeStr(item.name).includes(searchVal) ||
+          normalizeStr(item.brand).includes(searchVal) ||
+          normalizeStr(item.category).includes(searchVal) ||
+          normalizeStr(item.supplier).includes(searchVal);
+        if (!match) return false;
+      }
+      return true;
+    });
 
     if (filtered.length === 0) {
       tableBody.innerHTML = `
         <tr>
           <td colspan="7" class="text-center py-6 text-muted">
-            No hay insumos registrados en esta categoría.
+            No se encontraron insumos con el criterio seleccionado.
           </td>
         </tr>
       `;
@@ -1919,122 +1985,262 @@ class LussoCRM {
   }
 
   // ================= EXPENSES =================
-  renderExpenses() {
+  // ================= CAJA CHICA & CUADRE DE EFECTIVO =================
+  renderCaja() {
+    const summary = window.lussoDB.getCajaChicaSummary();
     const pettyCash = window.lussoDB.getPettyCashExpenses();
-    const invoices = window.lussoDB.getInvoiceExpenses();
+    const tableBody = document.getElementById('petty-cash-table-body');
 
-    const tableCaja = document.getElementById('petty-cash-table-body');
-    const tableFact = document.getElementById('invoices-table-body');
+    // Update Stat Cards
+    const elInitial = document.getElementById('caja-stat-initial');
+    const elSalesCash = document.getElementById('caja-stat-sales-cash');
+    const elSalesCount = document.getElementById('caja-stat-sales-count');
+    const elExpenses = document.getElementById('caja-stat-expenses');
+    const elExpensesCount = document.getElementById('caja-stat-expenses-count');
+    const elExpected = document.getElementById('caja-stat-expected');
 
-    const totalCaja = pettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-    const totalFact = invoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    if (elInitial) elInitial.textContent = `S/ ${summary.initialBase.toFixed(2)}`;
+    if (elSalesCash) elSalesCash.textContent = `S/ ${summary.totalCashCollected.toFixed(2)}`;
+    if (elSalesCount) elSalesCount.textContent = `${summary.cashSalesCount} cobros en efectivo hoy`;
+    if (elExpenses) elExpenses.textContent = `S/ ${summary.totalPettyCashOut.toFixed(2)}`;
+    if (elExpensesCount) elExpensesCount.textContent = `${summary.expensesCount} salidas registradas hoy`;
+    if (elExpected) elExpected.textContent = `S/ ${summary.expectedCashInDrawer.toFixed(2)}`;
 
-    const elTotalCaja = document.getElementById('summary-petty-cash');
-    const elTotalFact = document.getElementById('summary-invoices');
-    const elTotalAll = document.getElementById('summary-all-expenses');
+    // Set today date as default in caja-date-input
+    const dateInput = document.getElementById('caja-date-input');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
 
-    if (elTotalCaja) elTotalCaja.textContent = `S/ ${totalCaja.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
-    if (elTotalFact) elTotalFact.textContent = `S/ ${totalFact.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
-    if (elTotalAll) elTotalAll.textContent = `S/ ${(totalCaja + totalFact).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
-
-    if (tableCaja) {
+    // Render Table
+    if (tableBody) {
       if (pettyCash.length === 0) {
-        tableCaja.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay gastos de caja chica registrados.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay salidas de caja chica registradas.</td></tr>';
       } else {
         let html = '';
-        pettyCash.forEach(e => {
+        pettyCash.slice(0, 50).forEach(e => {
           html += `
             <tr>
-              <td>${e.date}</td>
-              <td class="font-bold text-dark">${e.description}</td>
-              <td class="font-bold text-red">S/ ${Number(e.amount).toFixed(2)}</td>
-              <td class="text-sm text-muted">${e.notes || '-'}</td>
+              <td class="text-xs">📅 ${e.date}</td>
+              <td><span class="font-bold text-dark">${e.description}</span> ${e.notes ? `<span class="text-xs text-muted block">(${e.notes})</span>` : ''}</td>
+              <td><span class="font-bold text-red">- S/ ${Number(e.amount).toFixed(2)}</span></td>
+              <td><span class="badge-specialist">${e.specialist || 'Kiara'}</span></td>
               <td>
-                <button class="btn-icon text-red" onclick="window.lussoCRM.handleDeletePettyCash('${e.id}')">🗑️</button>
+                <button class="btn-icon text-red" title="Eliminar registro" onclick="window.lussoCRM.handleDeletePettyCash('${e.id}')">🗑️</button>
               </td>
             </tr>
           `;
         });
-        tableCaja.innerHTML = html;
+        tableBody.innerHTML = html;
       }
     }
 
-    if (tableFact) {
-      if (invoices.length === 0) {
-        tableFact.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay facturas registradas.</td></tr>';
+    // Update Cuadre Calculator
+    this.handleCuadreInput();
+  }
+
+  handlePromptInitialCashBase() {
+    const current = window.lussoDB.getInitialCashBase();
+    const input = prompt('Ingresa el monto del Fondo Inicial de Caja (para dar vueltos):', current);
+    if (input !== null) {
+      const val = parseFloat(input);
+      if (!isNaN(val) && val >= 0) {
+        window.lussoDB.setInitialCashBase(val);
+        this.renderCaja();
+        this.showToast(`Fondo Inicial actualizado a S/ ${val.toFixed(2)}`, 'success');
+      } else {
+        this.showToast('Por favor introduce un monto numérico válido.', 'warning');
+      }
+    }
+  }
+
+  handleCuadreInput() {
+    const summary = window.lussoDB.getCajaChicaSummary();
+    const expected = summary.expectedCashInDrawer;
+
+    let countedTotal = 0;
+    document.querySelectorAll('.denom-input').forEach(input => {
+      const val = Number(input.getAttribute('data-val')) || 0;
+      const qty = parseFloat(input.value) || 0;
+      const id = input.id;
+
+      let subtotal = 0;
+      if (id === 'denom-coins-major' || id === 'denom-coins-minor') {
+        subtotal = qty;
+      } else {
+        subtotal = val * qty;
+      }
+      countedTotal += subtotal;
+
+      const subEl = document.getElementById(`denom-sub-${val}`) || (id ? document.getElementById(`denom-sub-${id.replace('denom-', '')}`) : null);
+      if (subEl) {
+        subEl.textContent = `S/ ${subtotal.toFixed(2)}`;
+      }
+    });
+
+    const diff = Math.round((countedTotal - expected) * 100) / 100;
+
+    const elCounted = document.getElementById('cuadre-total-counted');
+    const elExpected = document.getElementById('cuadre-total-expected');
+    const elDiff = document.getElementById('cuadre-total-diff');
+    const container = document.getElementById('cuadre-result-container');
+    const title = document.getElementById('cuadre-status-title');
+    const desc = document.getElementById('cuadre-status-desc');
+
+    if (elCounted) elCounted.textContent = `S/ ${countedTotal.toFixed(2)}`;
+    if (elExpected) elExpected.textContent = `S/ ${expected.toFixed(2)}`;
+    if (elDiff) elDiff.textContent = `${diff >= 0 ? '+' : ''} S/ ${diff.toFixed(2)}`;
+
+    if (container) {
+      container.className = 'cuadre-result-box';
+      if (Math.abs(diff) < 0.05) {
+        container.classList.add('is-balanced');
+        if (title) title.textContent = '✅ ¡Caja Cuadrada Perfectamente!';
+        if (desc) desc.textContent = 'El efectivo físico contado en gaveta coincide al 100% con el sistema.';
+        if (elDiff) elDiff.className = 'font-bold text-emerald';
+      } else if (diff > 0) {
+        container.classList.add('is-surplus');
+        if (title) title.textContent = `🟢 Sobrante en Caja (+ S/ ${diff.toFixed(2)})`;
+        if (desc) desc.textContent = 'Hay más dinero físico en gaveta del registrado en cobros/fondo inicial.';
+        if (elDiff) elDiff.className = 'font-bold text-blue';
+      } else {
+        container.classList.add('is-deficit');
+        if (title) title.textContent = `🔴 Faltante en Caja (- S/ ${Math.abs(diff).toFixed(2)})`;
+        if (desc) desc.textContent = 'Falta dinero físico en gaveta respecto a los cobros registrados.';
+        if (elDiff) elDiff.className = 'font-bold text-red';
+      }
+    }
+  }
+
+  // ================= EXPENSES & FINANCIAL BALANCE (DUEÑA) =================
+  renderExpenses() {
+    const monthSelect = document.getElementById('expenses-month-filter');
+    const currentMonth = monthSelect?.value || new Date().toISOString().substring(0, 7);
+    if (monthSelect && !monthSelect.value) {
+      monthSelect.value = currentMonth;
+    }
+
+    const catFilter = document.getElementById('fact-filter-category')?.value || 'all';
+
+    const balance = window.lussoDB.getFinancialBalance(currentMonth);
+
+    const elIncome = document.getElementById('fin-total-income');
+    const elIncomeSub = document.getElementById('fin-income-sub');
+    const elExpenses = document.getElementById('fin-total-expenses');
+    const elExpensesSub = document.getElementById('fin-expenses-sub');
+    const elProfit = document.getElementById('fin-net-profit');
+    const elMargin = document.getElementById('fin-margin-pct');
+    const elPayroll = document.getElementById('fin-payroll-total');
+
+    if (elIncome) elIncome.textContent = `S/ ${balance.totalIncome.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+    if (elIncomeSub) elIncomeSub.textContent = `${balance.salesCount} servicios cobrados en POS`;
+    if (elExpenses) elExpenses.textContent = `S/ ${balance.totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+    if (elExpensesSub) elExpensesSub.textContent = `Facturas S/ ${balance.totalInvoices.toFixed(0)} + Caja S/ ${balance.totalPettyCash.toFixed(0)} + Nómina S/ ${balance.totalPayroll.toFixed(0)}`;
+    if (elProfit) {
+      elProfit.textContent = `S/ ${balance.netProfit.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+      elProfit.className = `fin-hero-val ${balance.netProfit >= 0 ? 'text-glow-green' : 'text-red'}`;
+    }
+    if (elMargin) elMargin.textContent = `${balance.profitMargin.toFixed(1)}% de margen operativo neto`;
+    if (elPayroll) elPayroll.textContent = `S/ ${balance.totalPayroll.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+
+    const allInvoices = window.lussoDB.getInvoiceExpenses();
+    let filteredInvoices = allInvoices.filter(i => i.date && i.date.startsWith(currentMonth));
+    if (catFilter !== 'all') {
+      filteredInvoices = filteredInvoices.filter(i => i.category === catFilter);
+    }
+
+    const tableBody = document.getElementById('invoices-table-body');
+    if (tableBody) {
+      if (filteredInvoices.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay facturas o egresos registrados para este mes.</td></tr>';
       } else {
         let html = '';
-        invoices.forEach(e => {
+        filteredInvoices.forEach(inv => {
           html += `
             <tr>
-              <td>${e.date}</td>
-              <td class="font-bold text-dark">${e.description}</td>
-              <td class="font-bold text-red">S/ ${Number(e.amount).toFixed(2)}</td>
-              <td class="text-sm text-muted">${e.notes || '-'}</td>
+              <td class="text-xs">📅 ${inv.date}</td>
               <td>
-                <button class="btn-icon text-red" onclick="window.lussoCRM.handleDeleteInvoice('${e.id}')">🗑️</button>
+                <div class="font-bold text-dark">${inv.description}</div>
+                <span class="category-pill">${inv.category || 'Proveedor'}</span>
+              </td>
+              <td><span class="font-bold text-red">S/ ${Number(inv.amount).toFixed(2)}</span></td>
+              <td class="text-xs text-muted">
+                <div>${inv.notes || '-'}</div>
+                ${inv.paymentMethod ? `<span class="badge-payment badge-pos">${inv.paymentMethod}</span>` : ''}
+              </td>
+              <td>
+                <button class="btn-icon text-red" title="Eliminar factura" onclick="window.lussoCRM.handleDeleteInvoice('${inv.id}')">🗑️</button>
               </td>
             </tr>
           `;
         });
-        tableFact.innerHTML = html;
+        tableBody.innerHTML = html;
       }
     }
   }
 
   handleSavePettyCash() {
-    const description = document.getElementById('caja-desc-input').value.trim();
-    const amount = parseFloat(document.getElementById('caja-amount-input').value);
-    const date = document.getElementById('caja-date-input').value || new Date().toISOString().split('T')[0];
-    const notes = document.getElementById('caja-notes-input').value.trim();
+    const description = document.getElementById('caja-desc-input')?.value.trim();
+    const amount = parseFloat(document.getElementById('caja-amount-input')?.value);
+    const date = document.getElementById('caja-date-input')?.value || new Date().toISOString().split('T')[0];
+    const specialist = document.getElementById('caja-specialist-select')?.value || 'Kiara';
+    const notes = document.getElementById('caja-notes-input')?.value.trim();
 
     if (!description || isNaN(amount) || amount <= 0) {
-      this.showToast('Por favor completa la descripción y un monto válido.', 'warning');
+      this.showToast('Por favor completa la descripción y un monto válido mayor a 0.', 'warning');
       return;
     }
 
-    window.lussoDB.addPettyCashExpense({ date, description, amount, notes });
-    document.getElementById('caja-desc-input').value = '';
-    document.getElementById('caja-amount-input').value = '';
-    document.getElementById('caja-notes-input').value = '';
+    window.lussoDB.addPettyCashExpense({ date, description, amount, specialist, notes });
+    if (document.getElementById('caja-desc-input')) document.getElementById('caja-desc-input').value = '';
+    if (document.getElementById('caja-amount-input')) document.getElementById('caja-amount-input').value = '';
+    if (document.getElementById('caja-notes-input')) document.getElementById('caja-notes-input').value = '';
+
+    this.renderCaja();
     this.renderExpenses();
     this.renderDashboard();
-    this.showToast('Gasto de caja chica registrado.', 'success');
+    this.showToast(`Salida de S/ ${amount.toFixed(2)} registrada en Caja Chica.`, 'success');
   }
 
   handleSaveInvoice() {
-    const description = document.getElementById('fact-desc-input').value.trim();
-    const amount = parseFloat(document.getElementById('fact-amount-input').value);
-    const date = document.getElementById('fact-date-input').value || new Date().toISOString().split('T')[0];
-    const notes = document.getElementById('fact-notes-input').value.trim();
+    const description = document.getElementById('fact-desc-input')?.value.trim();
+    const amount = parseFloat(document.getElementById('fact-amount-input')?.value);
+    const date = document.getElementById('fact-date-input')?.value || new Date().toISOString().split('T')[0];
+    const category = document.getElementById('fact-category-select')?.value || 'Proveedores (Tintes/Insumos)';
+    const paymentMethod = document.getElementById('fact-payment-method')?.value || 'Transferencia BCP/BBVA';
+    const notes = document.getElementById('fact-notes-input')?.value.trim();
 
     if (!description || isNaN(amount) || amount <= 0) {
-      this.showToast('Por favor completa el proveedor/descripción y monto.', 'warning');
+      this.showToast('Por favor completa el proveedor/descripción y un monto válido.', 'warning');
       return;
     }
 
-    window.lussoDB.addInvoiceExpense({ date, description, amount, notes });
-    document.getElementById('fact-desc-input').value = '';
-    document.getElementById('fact-amount-input').value = '';
-    document.getElementById('fact-notes-input').value = '';
+    window.lussoDB.addInvoiceExpense({ date, description, amount, category, paymentMethod, notes });
+    if (document.getElementById('fact-desc-input')) document.getElementById('fact-desc-input').value = '';
+    if (document.getElementById('fact-amount-input')) document.getElementById('fact-amount-input').value = '';
+    if (document.getElementById('fact-notes-input')) document.getElementById('fact-notes-input').value = '';
+
     this.renderExpenses();
     this.renderDashboard();
-    this.showToast('Factura de proveedor registrada.', 'success');
+    this.showToast(`Egreso de S/ ${amount.toFixed(2)} registrado en el Balance de Dueña.`, 'success');
   }
 
   handleDeletePettyCash(id) {
-    if (confirm('¿Eliminar este gasto de caja chica?')) {
+    if (confirm('¿Segura de eliminar este movimiento de caja chica?')) {
       window.lussoDB.deletePettyCashExpense(id);
+      this.renderCaja();
       this.renderExpenses();
       this.renderDashboard();
+      this.showToast('Movimiento de caja chica eliminado.', 'info');
     }
   }
 
   handleDeleteInvoice(id) {
-    if (confirm('¿Eliminar esta factura?')) {
+    if (confirm('¿Segura de eliminar este registro de egreso/factura?')) {
       window.lussoDB.deleteInvoiceExpense(id);
       this.renderExpenses();
       this.renderDashboard();
+      this.showToast('Registro de egreso eliminado.', 'info');
     }
   }
 

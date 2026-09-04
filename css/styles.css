@@ -3553,6 +3553,317 @@ button, input, select, textarea {
   }
 }
 
+/* ==========================================================================
+   LARGE & OPTIMIZED SEARCH BARS & FILTERS (Tablet & Touch Friendly)
+   ========================================================================== */
+.table-filters-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.filter-search-box {
+  position: relative;
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-search-box .search-icon-pos {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.filter-input {
+  width: 100%;
+  height: 52px;
+  min-height: 52px;
+  padding: 12px 20px 12px 52px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--dark);
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-input:focus {
+  background: #ffffff;
+  border-color: var(--burgundy);
+  box-shadow: 0 0 0 4px rgba(114, 47, 55, 0.12);
+}
+
+.filter-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+.filter-selects-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  height: 50px;
+  min-height: 50px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dark);
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+  border-color: var(--burgundy);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.12);
+}
+
+.filter-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   CAJA CHICA & CUADRE DE CAJA DIARIA (Estilistas & Counter)
+   ========================================================================== */
+.caja-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.caja-stat-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.caja-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary);
+}
+
+.caja-stat-card.card-emerald::before { background: var(--emerald); }
+.caja-stat-card.card-amber::before { background: var(--amber); }
+.caja-stat-card.card-red::before { background: #ef4444; }
+.caja-stat-card.card-burgundy::before { background: var(--burgundy); }
+
+.caja-stat-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.caja-stat-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--burgundy);
+  line-height: 1.2;
+}
+
+.caja-stat-desc {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* Cuadre Denominations Breakdown */
+.cuadre-grid-2 {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.denomination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: var(--radius-xs);
+  margin-bottom: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.denom-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.denom-input {
+  width: 90px;
+  height: 38px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-xs);
+  outline: none;
+}
+
+.denom-input:focus {
+  border-color: var(--burgundy);
+  box-shadow: 0 0 0 2px rgba(114, 47, 55, 0.15);
+}
+
+.denom-subtotal {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--burgundy);
+  min-width: 80px;
+  text-align: right;
+}
+
+.cuadre-result-box {
+  padding: 1.25rem;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.cuadre-result-box.is-balanced {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.cuadre-result-box.is-surplus {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.cuadre-result-box.is-deficit {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   FINANCIAL BALANCE & EXECUTIVE SUMMARY (Dueña)
+   ========================================================================== */
+.financial-balance-hero {
+  background: linear-gradient(135deg, #2b1118 0%, #4a1523 50%, #722f37 100%);
+  color: #ffffff;
+  padding: 2rem 2.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 25px rgba(43, 17, 24, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.financial-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.fin-hero-item {
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  padding-right: 1.5rem;
+}
+
+.fin-hero-item:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.fin-hero-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+.fin-hero-val {
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.fin-hero-val.text-glow-green {
+  color: #4ade80;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+}
+
+.fin-hero-sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
+}
+
+@media (max-width: 1024px) {
+  .caja-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cuadre-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .financial-hero-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+
 
 
 

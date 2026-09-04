@@ -441,6 +441,82 @@ class LussoStorageService {
     } catch (e) { console.warn(e); }
   }
 
+  // --- CAJA CHICA & CUADRE DE EFECTIVO ---
+  getInitialCashBase() {
+    try {
+      return Number(localStorage.getItem('lusso_initial_cash_base')) || 100;
+    } catch {
+      return 100;
+    }
+  }
+
+  setInitialCashBase(amount) {
+    try {
+      localStorage.setItem('lusso_initial_cash_base', String(Number(amount) || 0));
+    } catch (e) { console.warn(e); }
+  }
+
+  getCajaChicaSummary(targetDate = null) {
+    const date = targetDate || new Date().toISOString().split('T')[0];
+    const allSales = this.getSales();
+    const pettyCash = this.getPettyCashExpenses();
+
+    // Cash sales for target date
+    const cashSalesToday = allSales.filter(s => s.date === date && (s.paymentMethod === 'EFECTIVO' || s.paymentMethod === 'Efectivo'));
+    const totalCashCollected = cashSalesToday.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+
+    // Petty cash expenses for target date
+    const expensesToday = pettyCash.filter(e => e.date === date);
+    const totalPettyCashOut = expensesToday.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+
+    const initialBase = this.getInitialCashBase();
+    const expectedCashInDrawer = initialBase + totalCashCollected - totalPettyCashOut;
+
+    return {
+      date,
+      initialBase,
+      totalCashCollected,
+      totalPettyCashOut,
+      expectedCashInDrawer,
+      cashSalesCount: cashSalesToday.length,
+      expensesCount: expensesToday.length
+    };
+  }
+
+  // --- FINANCIAL BALANCE FOR OWNER (DUEÑA) ---
+  getFinancialBalance(targetMonth = null) {
+    const month = targetMonth || new Date().toISOString().substring(0, 7);
+    const sales = this.getSales().filter(s => s.date && s.date.startsWith(month));
+    const pettyCash = this.getPettyCashExpenses().filter(e => e.date && e.date.startsWith(month));
+    const invoices = this.getInvoiceExpenses().filter(e => e.date && e.date.startsWith(month));
+
+    const totalIncome = sales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const totalPettyCash = pettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalInvoices = invoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+
+    // Calculate payroll for Kiara and Cielo
+    const payrollKiara = this.calculateMonthlyPayroll('Kiara', month);
+    const payrollCielo = this.calculateMonthlyPayroll('Cielo', month);
+    const totalPayroll = (payrollKiara?.netPayable || 0) + (payrollCielo?.netPayable || 0);
+
+    const totalExpenses = totalPettyCash + totalInvoices + totalPayroll;
+    const netProfit = totalIncome - totalExpenses;
+    const profitMargin = totalIncome > 0 ? ((netProfit / totalIncome) * 100) : 0;
+
+    return {
+      month,
+      totalIncome,
+      totalPettyCash,
+      totalInvoices,
+      totalPayroll,
+      totalExpenses,
+      netProfit,
+      profitMargin,
+      salesCount: sales.length,
+      invoicesCount: invoices.length
+    };
+  }
+
   // --- SERVICES CATALOG ---
   getServicesCatalog() {
     try {
