@@ -2769,7 +2769,56 @@ button, input, select, textarea {
   }
 }
 
-/* ================= ROLE SWITCHER & PRIVACY STYLES ================= */
+/* ================= CLOUD SYNC & ROLE SWITCHER STYLES ================= */
+.cloud-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cloud-status-pill:hover {
+  background: #dcfce7;
+  transform: translateY(-1px);
+}
+
+.cloud-status-pill.syncing {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.cloud-status-pill.offline {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+}
+
+.cloud-status-pill.syncing .sync-dot {
+  background: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+.cloud-status-pill.offline .sync-dot {
+  background: #94a3b8;
+}
+
 .top-role-wrapper {
   margin-left: 0.5rem;
 }

@@ -47,9 +47,12 @@ LUSSO/
 │   ├── app.js                  # Inicializador global y manejador de modales
 │   ├── crm.js                  # Controlador general: Agenda, POS, Clientas, Google Cal y Nómina
 │   ├── data.js                 # Datos semilla iniciales (213 clientas y catálogo 2026)
-│   └── storage.js              # Capa de almacenamiento local (LocalStorage) y cálculos contables
+│   ├── storage.js              # Capa de almacenamiento local (LocalStorage) y cálculos contables
+│   └── supabase.js             # Módulo de sincronización en la nube con Supabase PostgreSQL
 │
-├── .gitignore                  # Exclusiones de Git (node_modules, logs, temporales)
+├── supabase_schema.sql         # Esquema de tablas y políticas RLS para base de datos
+├── initial_data.json           # Respaldo JSON completo consolidado
+├── .gitignore                  # Exclusiones de Git (node_modules, logs, credenciales)
 ├── README.md                   # Documentación técnica del proyecto
 ├── package.json                # Información y metadatos del proyecto
 └── vercel.json                 # Configuración para despliegue en la nube

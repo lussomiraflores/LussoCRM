@@ -20,17 +20,17 @@ class LussoCRM {
   }
 
   init() {
-    this.bindEvents();
-    this.updateRoleUI();
-    this.renderDashboard();
-    this.renderAppointments();
-    this.renderClients();
-    this.renderSales();
-    this.renderInventory();
-    this.renderExpenses();
-    this.renderPayroll();
-    this.populateSelects();
-    this.updateAppointmentBadges();
+    try { this.bindEvents(); } catch (e) { console.error('Error in bindEvents:', e); }
+    try { this.updateRoleUI(); } catch (e) { console.error('Error in updateRoleUI:', e); }
+    try { this.renderDashboard(); } catch (e) { console.error('Error in renderDashboard:', e); }
+    try { this.renderAppointments(); } catch (e) { console.error('Error in renderAppointments:', e); }
+    try { this.renderClients(); } catch (e) { console.error('Error in renderClients:', e); }
+    try { this.renderSales(); } catch (e) { console.error('Error in renderSales:', e); }
+    try { this.renderInventory(); } catch (e) { console.error('Error in renderInventory:', e); }
+    try { this.renderExpenses(); } catch (e) { console.error('Error in renderExpenses:', e); }
+    try { this.renderPayroll(); } catch (e) { console.error('Error in renderPayroll:', e); }
+    try { this.populateSelects(); } catch (e) { console.error('Error in populateSelects:', e); }
+    try { this.updateAppointmentBadges(); } catch (e) { console.error('Error in updateAppointmentBadges:', e); }
   }
 
   bindEvents() {
@@ -87,7 +87,7 @@ class LussoCRM {
       });
     }
 
-    // Admin PIN Form Submit
+    // Admin PIN Form Submit (if form element used)
     const adminPinForm = document.getElementById('form-admin-pin');
     if (adminPinForm) {
       adminPinForm.addEventListener('submit', (e) => {
@@ -96,7 +96,7 @@ class LussoCRM {
         if (window.lussoDB.verifyAdminPin(pin)) {
           this.setRole('admin');
           document.getElementById('modal-admin-pin')?.classList.remove('open');
-          document.getElementById('input-admin-pin').value = '';
+          if (document.getElementById('input-admin-pin')) document.getElementById('input-admin-pin').value = '';
           document.getElementById('pin-error-msg')?.classList.add('hidden');
           this.showToast('Acceso desbloqueado: Modo Dueña / Administración activo.', 'success');
           if (this.pendingTab) {
@@ -136,7 +136,7 @@ class LussoCRM {
       });
     });
 
-    const aptStatusSelect = document.getElementById('appointment-status-select-filter');
+    const aptStatusSelect = document.getElementById('appointment-status-filter') || document.getElementById('appointment-status-select-filter');
     if (aptStatusSelect) {
       aptStatusSelect.addEventListener('change', (e) => {
         this.appointmentFilterStatus = e.target.value;
@@ -169,14 +169,14 @@ class LussoCRM {
     });
 
     // POS Client Input Change -> Show Last Service Card
-    const saleClientInput = document.getElementById('sale-client-input');
+    const saleClientInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
     if (saleClientInput) {
       saleClientInput.addEventListener('input', (e) => this.handlePOSClientInputChange(e.target.value));
       saleClientInput.addEventListener('change', (e) => this.handlePOSClientInputChange(e.target.value));
     }
 
     // Sales Filters
-    const salesDateFilter = document.getElementById('sales-date-filter');
+    const salesDateFilter = document.getElementById('sales-filter-date') || document.getElementById('sales-date-filter');
     if (salesDateFilter) {
       salesDateFilter.addEventListener('change', (e) => {
         this.salesFilterDate = e.target.value;
@@ -194,9 +194,9 @@ class LussoCRM {
     }
 
     // Form Submissions
-    const newSaleForm = document.getElementById('form-new-sale');
-    if (newSaleForm) {
-      newSaleForm.addEventListener('submit', (e) => {
+    const posSaleForm = document.getElementById('form-pos-sale') || document.getElementById('form-new-sale');
+    if (posSaleForm) {
+      posSaleForm.addEventListener('submit', (e) => {
         e.preventDefault();
         this.handleCreateSale();
       });
@@ -657,7 +657,7 @@ class LussoCRM {
   }
 
   renderPaymentMethodChart(paymentMethods) {
-    const container = document.getElementById('chart-payments');
+    const container = document.getElementById('chart-payment-methods') || document.getElementById('chart-payments');
     if (!container) return;
 
     const isAdmin = window.lussoDB.isPrivilegedAdmin();
@@ -695,7 +695,7 @@ class LussoCRM {
 
 
   renderTopServicesList(topServices) {
-    const container = document.getElementById('list-top-services');
+    const container = document.getElementById('dashboard-top-services-list') || document.getElementById('list-top-services');
     if (!container) return;
 
     if (!topServices || topServices.length === 0) {
@@ -901,19 +901,59 @@ class LussoCRM {
     container.innerHTML = html;
   }
 
-  filterAppointmentsByDate(dateVal) {
+  openManualAppointmentModal(aptData = null) {
+    this.openNewAppointmentModal(aptData);
+  }
+
+  setAppointmentDateFilter(dateVal) {
     this.appointmentFilterDate = dateVal;
-    document.querySelectorAll('.apt-date-filter').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-date') === dateVal);
+    document.querySelectorAll('.apt-date-filter, .apt-stat-box').forEach(btn => {
+      if (btn.getAttribute('data-date') === dateVal) {
+        btn.classList.add('active');
+      } else if (dateVal === 'today' && btn.querySelector('#apt-stat-today-count')) {
+        btn.classList.add('active');
+      } else if (btn.getAttribute('data-date')) {
+        btn.classList.remove('active');
+      }
     });
+    const dateSelect = document.getElementById('appointment-date-filter');
+    if (dateSelect) dateSelect.value = dateVal;
+    this.renderAppointments();
+  }
+
+  filterAppointmentsByDate(dateVal) {
+    this.setAppointmentDateFilter(dateVal);
+  }
+
+  setAppointmentStatusFilter(statusVal) {
+    this.appointmentFilterStatus = statusVal;
+    document.querySelectorAll('.apt-stat-box').forEach(box => {
+      box.classList.remove('active');
+      if (statusVal === 'pending' && box.querySelector('#apt-stat-pending-count')) box.classList.add('active');
+      else if (statusVal === 'confirmed' && box.querySelector('#apt-stat-confirmed-count')) box.classList.add('active');
+      else if (statusVal === 'completed' && box.querySelector('#apt-stat-completed-count')) box.classList.add('active');
+    });
+    const select = document.getElementById('appointment-status-filter') || document.getElementById('appointment-status-select-filter');
+    if (select) select.value = statusVal;
     this.renderAppointments();
   }
 
   filterAppointmentsByStatus(statusVal) {
-    this.appointmentFilterStatus = statusVal;
-    const select = document.getElementById('appointment-status-select-filter');
-    if (select) select.value = statusVal;
+    this.setAppointmentStatusFilter(statusVal);
+  }
+
+  setAppointmentSpecFilter(specVal) {
+    this.appointmentFilterSpec = specVal;
+    const select = document.getElementById('appointment-spec-filter');
+    if (select) select.value = specVal;
     this.renderAppointments();
+  }
+
+  filterInventoryByCategory(category) {
+    this.inventoryFilterCategory = category;
+    const catSelect = document.getElementById('inventory-category-filter');
+    if (catSelect) catSelect.value = category;
+    this.renderInventory();
   }
 
   openNewAppointmentModal(aptData = null) {
@@ -1180,17 +1220,21 @@ class LussoCRM {
     this.switchTab('sales');
 
     // Pre-fill POS fields
-    const dateInput = document.getElementById('sale-date-input');
-    const clientInput = document.getElementById('sale-client-input');
-    const specSelect = document.getElementById('sale-specialist-select');
-    const srvInput = document.getElementById('sale-service-input');
-    const amtInput = document.getElementById('sale-amount-input');
-    const notesInput = document.getElementById('sale-notes-input');
+    const dateInput = document.getElementById('pos-date-input') || document.getElementById('sale-date-input');
+    const clientInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
+    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
+    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
+    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
+    const notesInput = document.getElementById('pos-notes-input') || document.getElementById('sale-notes-input');
+    const phoneInput = document.getElementById('pos-phone-input');
 
     if (dateInput) dateInput.value = apt.date || new Date().toISOString().split('T')[0];
     if (clientInput) {
       clientInput.value = apt.clientName;
       this.handlePOSClientInputChange(apt.clientName);
+    }
+    if (phoneInput && apt.clientPhone) {
+      phoneInput.value = apt.clientPhone;
     }
     if (specSelect) {
       // Find matching specialist option
@@ -1287,9 +1331,9 @@ class LussoCRM {
 
   replicateServiceInPOS(serviceEncoded, amount, specialist) {
     const service = decodeURIComponent(serviceEncoded);
-    const srvInput = document.getElementById('sale-service-input');
-    const amtInput = document.getElementById('sale-amount-input');
-    const specSelect = document.getElementById('sale-specialist-select');
+    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
+    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
+    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
 
     if (srvInput) srvInput.value = service;
     if (amtInput) amtInput.value = amount;
@@ -1303,7 +1347,7 @@ class LussoCRM {
     const clients = window.lussoDB.getClients();
     const searchVal = (document.getElementById('client-search-input')?.value || '').toLowerCase().trim();
     const tableBody = document.getElementById('clients-table-body');
-    const countBadge = document.getElementById('clients-count-badge');
+    const countBadge = document.getElementById('client-count-badge') || document.getElementById('clients-count-badge');
     
     if (!tableBody) return;
 
@@ -1479,10 +1523,10 @@ class LussoCRM {
     this.closeClientDrawer();
     this.switchTab('sales');
 
-    const cliInput = document.getElementById('sale-client-input');
-    const srvInput = document.getElementById('sale-service-input');
-    const amtInput = document.getElementById('sale-amount-input');
-    const specSelect = document.getElementById('sale-specialist-select');
+    const cliInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
+    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
+    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
+    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
 
     if (cliInput) cliInput.value = clientName;
     if (srvInput) srvInput.value = service;
@@ -1552,7 +1596,7 @@ class LussoCRM {
   // ================= SALES & POS =================
   renderSales() {
     const sales = window.lussoDB.getSales();
-    const tableBody = document.getElementById('sales-table-body');
+    const tableBody = document.getElementById('pos-today-sales-body') || document.getElementById('sales-table-body');
     const isAdmin = window.lussoDB.isPrivilegedAdmin();
     if (!tableBody) return;
 
@@ -1568,8 +1612,8 @@ class LussoCRM {
 
     const totalAmount = filtered.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
     const cashAmount = filtered.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
-    const cardAmount = filtered.filter(s => s.paymentMethod === 'TARJETA').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
-    const qrAmount = filtered.filter(s => s.paymentMethod === 'QR' || s.paymentMethod === 'YAPE/PLIN').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const cardAmount = filtered.filter(s => s.paymentMethod === 'TARJETA' || s.paymentMethod === 'POS').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const qrAmount = filtered.filter(s => s.paymentMethod === 'QR' || s.paymentMethod === 'YAPE/PLIN' || s.paymentMethod === 'Yape' || s.paymentMethod === 'Plin').reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
 
     const elTotal = document.getElementById('sales-summary-total');
     const elCash = document.getElementById('sales-summary-cash');
@@ -1594,6 +1638,7 @@ class LussoCRM {
 
     let html = '';
     filtered.slice(0, 80).forEach(sale => {
+      const pmClass = (sale.paymentMethod || 'POS').toLowerCase().replace('/', '-');
       html += `
         <tr>
           <td class="text-sm">📅 ${sale.date}</td>
@@ -1602,10 +1647,10 @@ class LussoCRM {
               ${sale.clientName}
             </span>
           </td>
-          <td><span class="badge-specialist">${sale.specialist}</span></td>
           <td><span class="font-medium">${sale.service}</span></td>
+          <td><span class="badge-specialist">${sale.specialist}</span></td>
           <td><span class="font-bold text-primary">S/ ${Number(sale.amount).toFixed(2)}</span></td>
-          <td><span class="badge-payment badge-${sale.paymentMethod.toLowerCase().replace('/', '-')}">${sale.paymentMethod}</span></td>
+          <td><span class="badge-payment badge-${pmClass}">${sale.paymentMethod}</span></td>
           <td>
             <button class="btn-icon text-red" title="Eliminar registro" onclick="window.lussoCRM.handleDeleteSale('${sale.id}')">🗑️</button>
           </td>
@@ -1617,13 +1662,25 @@ class LussoCRM {
   }
 
   handleCreateSale() {
-    const clientName = document.getElementById('sale-client-input').value.trim();
-    const specialist = document.getElementById('sale-specialist-select').value;
-    const service = document.getElementById('sale-service-input').value.trim();
-    const amount = parseFloat(document.getElementById('sale-amount-input').value);
-    const paymentMethod = document.getElementById('sale-payment-select').value;
-    const notes = document.getElementById('sale-notes-input').value.trim();
-    const date = document.getElementById('sale-date-input').value || new Date().toISOString().split('T')[0];
+    const clientInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
+    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
+    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
+    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
+    const paySelect = document.getElementById('pos-payment-method') || document.getElementById('sale-payment-select');
+    const notesInput = document.getElementById('pos-notes-input') || document.getElementById('sale-notes-input');
+    const dateInput = document.getElementById('pos-date-input') || document.getElementById('sale-date-input');
+    const tipInput = document.getElementById('pos-tip-input');
+    const phoneInput = document.getElementById('pos-phone-input');
+
+    const clientName = clientInput?.value.trim() || '';
+    const specialist = specSelect?.value || 'Kiara';
+    const service = srvInput?.value.trim() || '';
+    const amount = parseFloat(amtInput?.value) || 0;
+    const paymentMethod = paySelect?.value || 'POS';
+    const notes = notesInput?.value.trim() || '';
+    const date = dateInput?.value || new Date().toISOString().split('T')[0];
+    const tip = parseFloat(tipInput?.value) || 0;
+    const phone = phoneInput?.value.trim() || '';
 
     if (!clientName) {
       this.showToast('Por favor escribe o selecciona una clienta.', 'warning');
@@ -1633,9 +1690,25 @@ class LussoCRM {
       this.showToast('Por favor especifica el servicio.', 'warning');
       return;
     }
-    if (isNaN(amount) || amount < 0) {
+    if (isNaN(amount) || amount <= 0) {
       this.showToast('Por favor introduce un monto válido.', 'warning');
       return;
+    }
+
+    if (phone) {
+      const existingClient = window.lussoDB.getClientByName(clientName);
+      if (!existingClient) {
+        window.lussoDB.saveClient({
+          name: clientName,
+          phone: phone,
+          notes: notes
+        });
+      } else if (!existingClient.phone) {
+        window.lussoDB.saveClient({
+          ...existingClient,
+          phone: phone
+        });
+      }
     }
 
     window.lussoDB.addSale({
@@ -1645,14 +1718,17 @@ class LussoCRM {
       service,
       amount,
       paymentMethod,
-      notes
+      notes: tip > 0 ? `${notes ? notes + ' | ' : ''}Propina: S/ ${tip.toFixed(2)}` : notes
     });
 
-    document.getElementById('sale-client-input').value = '';
-    document.getElementById('sale-service-input').value = '';
-    document.getElementById('sale-amount-input').value = '';
-    document.getElementById('sale-notes-input').value = '';
-    document.getElementById('pos-client-history-preview').style.display = 'none';
+    if (clientInput) clientInput.value = '';
+    if (srvInput) srvInput.value = '';
+    if (amtInput) amtInput.value = '';
+    if (notesInput) notesInput.value = '';
+    if (tipInput) tipInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    const previewBox = document.getElementById('pos-client-history-preview');
+    if (previewBox) previewBox.style.display = 'none';
 
     this.renderSales();
     this.renderDashboard();
@@ -2488,6 +2564,9 @@ class LussoCRM {
     const datalist = document.getElementById('clients-datalist');
     if (datalist) datalist.innerHTML = clientOptionsHtml;
 
+    const posClientDatalist = document.getElementById('clients-datalist-pos');
+    if (posClientDatalist) posClientDatalist.innerHTML = clientOptionsHtml;
+
     const manualClientDatalist = document.getElementById('clients-datalist-manual');
     if (manualClientDatalist) manualClientDatalist.innerHTML = clientOptionsHtml;
 
@@ -2497,11 +2576,14 @@ class LussoCRM {
     const servicesDatalist = document.getElementById('services-datalist');
     if (servicesDatalist) servicesDatalist.innerHTML = serviceOptionsHtml;
 
+    const posServicesDatalist = document.getElementById('services-datalist-pos');
+    if (posServicesDatalist) posServicesDatalist.innerHTML = serviceOptionsHtml;
+
     const manualServiceDatalist = document.getElementById('services-datalist-manual');
     if (manualServiceDatalist) manualServiceDatalist.innerHTML = serviceOptionsHtml;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    ['sale-date-input', 'caja-date-input', 'fact-date-input', 'manual-apt-date'].forEach(id => {
+    ['pos-date-input', 'sale-date-input', 'caja-date-input', 'fact-date-input', 'manual-apt-date', 'sales-filter-date'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayStr;
     });

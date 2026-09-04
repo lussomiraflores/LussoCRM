@@ -60,7 +60,14 @@ class LussoStorageService {
 
   getAuthRole() {
     try {
-      return sessionStorage.getItem('lusso_session_role') || 'stylist';
+      if (typeof sessionStorage !== 'undefined') {
+        const sessRole = sessionStorage.getItem('lusso_session_role');
+        if (sessRole) return sessRole;
+      }
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(STORAGE_KEYS.AUTH_ROLE) || 'stylist';
+      }
+      return 'stylist';
     } catch (e) {
       return 'stylist';
     }
@@ -68,14 +75,18 @@ class LussoStorageService {
 
   setAuthRole(role) {
     try {
-      if (role === 'admin') {
-        sessionStorage.setItem('lusso_session_role', 'admin');
-        sessionStorage.setItem('lusso_auth_timestamp', Date.now().toString());
-      } else {
-        sessionStorage.removeItem('lusso_session_role');
-        sessionStorage.removeItem('lusso_auth_timestamp');
+      if (typeof sessionStorage !== 'undefined') {
+        if (role === 'admin') {
+          sessionStorage.setItem('lusso_session_role', 'admin');
+          sessionStorage.setItem('lusso_auth_timestamp', Date.now().toString());
+        } else {
+          sessionStorage.removeItem('lusso_session_role');
+          sessionStorage.removeItem('lusso_auth_timestamp');
+        }
       }
-      localStorage.setItem(STORAGE_KEYS.AUTH_ROLE, role);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.AUTH_ROLE, role);
+      }
     } catch (e) {
       console.warn(e);
     }
@@ -219,6 +230,12 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(clients));
     } catch (e) { console.warn(e); }
+
+    // Async sync with Supabase
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncClient(clientData);
+    }
+
     return clientData;
   }
 
@@ -259,6 +276,11 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
     } catch (e) { console.warn(e); }
+
+    // Async sync with Supabase
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncSale(newSale);
+    }
 
     // Also verify if client exists in client list; if not, create them automatically
     const existingClient = this.getClientByName(newSale.clientName);
@@ -316,6 +338,10 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
     } catch (e) { console.warn(e); }
+
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncInventoryItem(itemData);
+    }
   }
 
   adjustStock(id, amountChange, reason = 'Ajuste manual') {
@@ -362,6 +388,10 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.EXPENSES_CAJA, JSON.stringify(expenses));
     } catch (e) { console.warn(e); }
+
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncPettyCash(newExp);
+    }
     return newExp;
   }
 
@@ -396,6 +426,10 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.EXPENSES_FACT, JSON.stringify(invoices));
     } catch (e) { console.warn(e); }
+
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncInvoice(newInv);
+    }
     return newInv;
   }
 
@@ -490,6 +524,10 @@ class LussoStorageService {
       }
     }
 
+    if (window.lussoSupabase && savedApt) {
+      window.lussoSupabase.syncAppointment(savedApt);
+    }
+
     return savedApt;
   }
 
@@ -503,6 +541,9 @@ class LussoStorageService {
         localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
       } catch (e) {
         console.warn(e);
+      }
+      if (window.lussoSupabase) {
+        window.lussoSupabase.syncAppointment(apt);
       }
       return apt;
     }
@@ -658,6 +699,10 @@ class LussoStorageService {
     try {
       localStorage.setItem(STORAGE_KEYS.ABSENCES, JSON.stringify(list));
     } catch (e) { console.warn(e); }
+
+    if (window.lussoSupabase) {
+      window.lussoSupabase.syncAbsence(savedItem);
+    }
     return savedItem;
   }
 
@@ -670,7 +715,19 @@ class LussoStorageService {
   }
 
   // --- MONTHLY PAYROLL CALCULATION ---
-  calculateMonthlyPayroll(month, specialistName) {
+  calculateMonthlyPayroll(param1, param2) {
+    let month, specialistName;
+    if (typeof param1 === 'string' && param1.includes('-') && /^\d{4}-\d{2}/.test(param1)) {
+      month = param1;
+      specialistName = param2 || 'Kiara';
+    } else if (typeof param2 === 'string' && param2.includes('-') && /^\d{4}-\d{2}/.test(param2)) {
+      specialistName = param1 || 'Kiara';
+      month = param2;
+    } else {
+      month = (param1 && param1.includes('-')) ? param1 : new Date().toISOString().substring(0, 7);
+      specialistName = param2 || param1 || 'Kiara';
+    }
+
     const staff = this.getStaffByName(specialistName) || {
       name: specialistName,
       baseSalary: specialistName.toLowerCase().includes('kiara') ? 1600 : 1400,

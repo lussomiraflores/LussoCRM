@@ -25,6 +25,12 @@
     </div>
     
     <div class="top-actions-group">
+      <!-- Supabase Cloud Sync Indicator -->
+      <div id="cloud-sync-status" class="cloud-status-pill online" onclick="window.lussoSupabase && window.lussoSupabase.syncAllToCloud()" title="Sincronización en la nube con Supabase. Clic para sincronizar ahora.">
+        <span class="sync-dot"></span>
+        <span id="cloud-sync-text">☁️ Supabase Conectado</span>
+      </div>
+
       <!-- Role Switcher (Stylist Mode vs Owner Mode with PIN) -->
       <div class="top-role-wrapper">
         <button id="btn-top-role-toggle" class="role-switcher-btn role-stylist" onclick="window.lussoCRM && window.lussoCRM.handleRoleClick()" title="Cambiar entre Modo Estilistas y Modo Dueña con PIN">
@@ -363,6 +369,7 @@
                   <label class="form-label">Clienta *</label>
                   <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input" placeholder="Nombre de la clienta" required>
                   <datalist id="clients-datalist-pos"></datalist>
+                  <div id="pos-client-history-preview" style="display:none;" class="mt-2"></div>
                 </div>
 
                 <div class="form-row-2">
@@ -445,6 +452,7 @@
                       <th>Especialista</th>
                       <th>Monto</th>
                       <th>Medio</th>
+                      <th>Acción</th>
                     </tr>
                   </thead>
                   <tbody id="pos-today-sales-body">
@@ -699,6 +707,28 @@
             <div>
               <h1 class="crm-view-title">Respaldo y Seguridad de Datos (🔒 Dueña)</h1>
               <p class="crm-view-desc">Descarga una copia completa de tu base de datos o restaura registros anteriores.</p>
+            </div>
+          <!-- Supabase Cloud Sync Card -->
+          <div class="dashboard-card mb-4" style="border-left: 4px solid var(--emerald); background: #f0fdf4;">
+            <div class="dash-card-header mb-2">
+              <div>
+                <h3 class="dash-card-title text-emerald" style="display: flex; align-items: center; gap: 8px;">
+                  <span>☁️ Sincronización en la Nube con Supabase (PostgreSQL)</span>
+                  <span class="badge-tag status-confirmed">Conectado</span>
+                </h3>
+                <p class="text-xs text-muted mt-1">Proyecto Supabase ID: <code>crwohdkuwygjgoyvmywh</code> • Respaldos automáticos al guardar cada servicio o cita.</p>
+              </div>
+            </div>
+            <p class="text-sm text-dark mb-3">
+              Puedes realizar una sincronización masiva para enviar o descargar todas las 213 clientas, servicios de caja, agenda e insumos entre la tablet del salón y tus otros dispositivos.
+            </p>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <button onclick="window.lussoSupabase && window.lussoSupabase.syncAllToCloud()" class="btn-primary" style="background: var(--emerald);">
+                <span>☁️ Subir Todo a Supabase</span>
+              </button>
+              <button onclick="window.lussoSupabase && window.lussoSupabase.pullAllFromCloud()" class="btn-outline text-emerald">
+                <span>📥 Descargar desde Supabase</span>
+              </button>
             </div>
           </div>
 
@@ -1253,7 +1283,9 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts -->
+  <!-- Supabase CDN Client & Cloud Sync Module -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase.js"></script>
   <script src="./js/data.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/crm.js"></script>
