@@ -7,8 +7,8 @@ Sistema integral de gestión comercial, agenda de citas, punto de venta (POS) y 
 ## 📱 Características Principales
 
 1. **🔒 Seguridad y Control de Roles (Modo Estilista vs. Modo Dueña)**:
-   - **Modo Estilista**: Diseñado para el uso diario en el counter y por el personal (Kiara y Cielo), protegiendo métricas de facturación acumulada, balances de caja y nóminas salariales.
-   - **Modo Dueña (PIN `2026`)**: Desbloquea ingresos totales, ticket promedio, desglose de métodos de pago, gestión de gastos, nóminas y exportación de respaldos.
+   - **Modo Estilista por Defecto**: Diseñado para el uso diario en el counter y por el personal (Kiara y Cielo), protegiendo métricas de facturación acumulada, balances de caja y nóminas salariales.
+   - **Modo Dueña (PIN `0501`)**: Desbloquea ingresos totales, métricas por periodos/meses, desglose de métodos de pago, gestión de gastos (incluyendo renta fija de S/ 2,500/mes), nóminas y exportación de respaldos.
    - **Teclado Táctil & Físico**: Optimizado para **Tablets Samsung de 11"** (Galaxy Tab A10+) con botones táctiles grandes (≥ 48px), así como soporte completo para teclados físicos y laptops.
 
 2. **📅 Agenda de Citas & Integración con Google Calendar**:
@@ -26,10 +26,14 @@ Sistema integral de gestión comercial, agenda de citas, punto de venta (POS) y 
    - Emisión de ticket / comprobante de atención para enviar por WhatsApp.
    - Control de stock con alertas de reposición y modal de edición completa de insumos.
 
-5. **📄 Asistencia, Nómina Base 30 Días & Boletas en PDF**:
-   - Cálculo legal peruano base 30 días (`Tarifa diaria = Sueldo / 30`).
-   - Registro de inasistencias, permisos de medio día, tardanzas, feriados trabajados y propinas en tarjeta 100% íntegras.
-   - **Generador de Boleta de Liquidación en PDF**: Formato oficial imprimible en A4 con desglose de haberes, deducciones, neto a pagar y firmas de conformidad.
+5. **💼 Pagos Quincenales, Nómina Base 30 Días & Boletas en PDF**:
+   - **1ra Quincena (Día 15)**: Pago fijo del 50% del sueldo base sin ningún tipo de descuento (Kiara S/ 1,250.00 | Cielo S/ 1,050.00).
+   - **Fin de Mes (Día 30/31)**: Segundo 50% de sueldo base + 100% propinas íntegras en POS + comisiones de productos (ampollas/tintes) + feriados trabajados - descuentos por inasistencias o tardanzas.
+   - **Generador de Boleta Oficial en PDF & WhatsApp**: Formato oficial imprimible en A4 con desglose de haberes, descuentos, cronograma quincenal y firmas de conformidad.
+
+6. **📊 Balance Financiero & Gastos Fijos**:
+   - Inclusión de **Alquiler Fijo Mensual de S/ 2,500.00** (Local Calle Berlín, Miraflores).
+   - Balance automático: `Ingresos Servicios - (Alquiler S/ 2,500 + Facturas Proveedores + Nóminas Kiara & Cielo + Caja Chica)`.
 
 ---
 

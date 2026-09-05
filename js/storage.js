@@ -533,17 +533,21 @@ class LussoStorageService {
     const totalPettyCash = pettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     const totalInvoices = invoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
 
+    // Fixed monthly rent: S/ 2,500.00
+    const fixedRent = 2500.00;
+
     // Calculate payroll for Kiara and Cielo
     const payrollKiara = this.calculateMonthlyPayroll('Kiara', month);
     const payrollCielo = this.calculateMonthlyPayroll('Cielo', month);
     const totalPayroll = (payrollKiara?.netPayable || 0) + (payrollCielo?.netPayable || 0);
 
-    const totalExpenses = totalPettyCash + totalInvoices + totalPayroll;
+    const totalExpenses = fixedRent + totalPettyCash + totalInvoices + totalPayroll;
     const netProfit = totalIncome - totalExpenses;
     const profitMargin = totalIncome > 0 ? ((netProfit / totalIncome) * 100) : 0;
 
     return {
       month,
+      fixedRent,
       totalIncome,
       totalPettyCash,
       totalInvoices,
@@ -903,7 +907,17 @@ class LussoStorageService {
     const totalTips = Math.round((manualTips + salesTips) * 100) / 100;
     const totalCommissions = Math.round((manualBonuses + salesCommissions) * 100) / 100;
 
-    const netPayable = Math.max(0, baseSalary - totalDeductions + totalFeriados + totalTips + totalCommissions);
+    // Quincenal Payroll Breakdown:
+    // 1ra Quincena (Día 15): 50% sueldo base fijo sin descuentos
+    const firstFortnightBase = Math.round((baseSalary / 2) * 100) / 100;
+    const firstFortnightPayment = firstFortnightBase;
+
+    // 2da Quincena / Fin de Mes (Día 30/31): 50% sueldo base + propinas + comisiones + feriados - deducciones
+    const secondFortnightBase = Math.round((baseSalary / 2) * 100) / 100;
+    const secondFortnightGross = secondFortnightBase + totalFeriados + totalTips + totalCommissions;
+    const secondFortnightPayment = Math.max(0, Math.round((secondFortnightGross - totalDeductions) * 100) / 100);
+
+    const netPayable = Math.round((firstFortnightPayment + secondFortnightPayment) * 100) / 100;
 
     return {
       specialist: staff.name,
@@ -913,6 +927,11 @@ class LussoStorageService {
       baseSalary,
       baseDays,
       dailyRate,
+      firstFortnightBase,
+      firstFortnightPayment,
+      secondFortnightBase,
+      secondFortnightGross: Math.round(secondFortnightGross * 100) / 100,
+      secondFortnightPayment,
       fullAbsenceCount,
       halfAbsenceCount,
       tardinessCount,
@@ -1075,6 +1094,22 @@ class LussoStorageService {
       const tot = d.totalRevenue || 1;
       const avgTicket = d.salesCount > 0 ? (d.totalRevenue / d.salesCount) : 0;
 
+      // Full Financial Balance for this specific month
+      const fixedRent = 2500;
+      const pKiara = this.calculateMonthlyPayroll('Kiara', d.month);
+      const pCielo = this.calculateMonthlyPayroll('Cielo', d.month);
+      const payrollTotal = (pKiara?.netPayable || 0) + (pCielo?.netPayable || 0);
+
+      const invList = this.getInvoiceExpenses().filter(e => e.date && e.date.startsWith(d.month));
+      const invoicesTotal = invList.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+
+      const pcList = this.getPettyCashExpenses('all').filter(e => e.date && e.date.startsWith(d.month));
+      const pettyCashTotal = pcList.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+
+      const totalExpenses = fixedRent + payrollTotal + invoicesTotal + pettyCashTotal;
+      const netProfit = Math.round((d.totalRevenue - totalExpenses) * 100) / 100;
+      const profitMargin = d.totalRevenue > 0 ? Math.round(((netProfit / d.totalRevenue) * 100) * 10) / 10 : 0;
+
       return {
         month: d.month,
         label: d.label,
@@ -1082,6 +1117,13 @@ class LussoStorageService {
         totalRevenue: Math.round(d.totalRevenue * 100) / 100,
         avgTicket: Math.round(avgTicket * 100) / 100,
         growthPct: Math.round(growth * 10) / 10,
+        fixedRent,
+        payrollTotal: Math.round(payrollTotal * 100) / 100,
+        invoicesTotal: Math.round(invoicesTotal * 100) / 100,
+        pettyCashTotal: Math.round(pettyCashTotal * 100) / 100,
+        totalExpenses: Math.round(totalExpenses * 100) / 100,
+        netProfit,
+        profitMargin,
         payment: {
           cash: { amount: Math.round(d.cashAmount * 100) / 100, pct: Math.round((d.cashAmount / tot) * 100) },
           pos: { amount: Math.round(d.posAmount * 100) / 100, pct: Math.round((d.posAmount / tot) * 100) },
@@ -1111,7 +1153,7 @@ class LussoStorageService {
     const allSales = this.getSales();
     const clients = this.getClients();
     const inventory = this.getInventory();
-    const pettyCash = this.getPettyCashExpenses();
+    const pettyCash = this.getPettyCashExpenses('all');
     const invoices = this.getInvoiceExpenses();
 
     const selectedMonth = monthFilter || '2026-09';
@@ -1148,6 +1190,21 @@ class LussoStorageService {
       else if (visits > 1) recurrentClientsCount++;
     });
 
+    // Complete Financial Balance Calculation
+    const fixedRent = selectedMonth === 'all' ? (2500 * 7) : 2500;
+    let totalPayroll = 0;
+    if (selectedMonth === 'all') {
+      ['2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'].forEach(m => {
+        const pk = this.calculateMonthlyPayroll('Kiara', m);
+        const pc = this.calculateMonthlyPayroll('Cielo', m);
+        totalPayroll += (pk?.netPayable || 0) + (pc?.netPayable || 0);
+      });
+    } else {
+      const pk = this.calculateMonthlyPayroll('Kiara', selectedMonth);
+      const pc = this.calculateMonthlyPayroll('Cielo', selectedMonth);
+      totalPayroll = (pk?.netPayable || 0) + (pc?.netPayable || 0);
+    }
+
     let filteredPettyCash = pettyCash;
     let filteredInvoices = invoices;
     if (selectedMonth && selectedMonth !== 'all') {
@@ -1157,7 +1214,9 @@ class LussoStorageService {
 
     const totalPettyCash = filteredPettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     const totalInvoices = filteredInvoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-    const totalExpenses = totalPettyCash + totalInvoices;
+    const totalExpenses = fixedRent + totalPayroll + totalInvoices + totalPettyCash;
+    const netProfit = Math.round((totalRevenue - totalExpenses) * 100) / 100;
+    const profitMargin = totalRevenue > 0 ? Math.round(((netProfit / totalRevenue) * 100) * 10) / 10 : 0;
 
     const lowStockItems = inventory.filter(i => i.stock <= i.minStock);
 
@@ -1190,6 +1249,21 @@ class LussoStorageService {
 
     const monthlyHistory = this.getMonthlyHistoricalSummary();
 
+    // Diagnostics & Strategic Metrics
+    let bestMonth = monthlyHistory[0] || null;
+    let highestRev = 0;
+    monthlyHistory.forEach(h => {
+      if (h.totalRevenue > highestRev) {
+        highestRev = h.totalRevenue;
+        bestMonth = h;
+      }
+    });
+
+    const completedMonths = monthlyHistory.filter(h => h.month !== '2026-09');
+    const avgMonthlyRevenue = completedMonths.length > 0 
+      ? Math.round(completedMonths.reduce((acc, h) => acc + h.totalRevenue, 0) / completedMonths.length)
+      : 0;
+
     return {
       selectedMonth,
       periodLabel,
@@ -1204,8 +1278,15 @@ class LussoStorageService {
         ? Math.round((recurrentClientsCount / (newClientsCount + recurrentClientsCount)) * 100) 
         : 0,
       avgTicket: filteredSales.length > 0 ? (totalRevenue / filteredSales.length) : 0,
+      fixedRent,
+      totalPayroll: Math.round(totalPayroll * 100) / 100,
+      totalInvoices: Math.round(totalInvoices * 100) / 100,
+      totalPettyCash: Math.round(totalPettyCash * 100) / 100,
       totalExpenses: Math.round(totalExpenses * 100) / 100,
-      netProfit: Math.round((totalRevenue - totalExpenses) * 100) / 100,
+      netProfit,
+      profitMargin,
+      bestMonth,
+      avgMonthlyRevenue,
       lowStockCount: lowStockItems.length,
       lowStockItems,
       paymentMethods,

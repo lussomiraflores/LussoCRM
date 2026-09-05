@@ -132,8 +132,8 @@
         <section id="tab-dashboard" class="crm-tab-content">
           <div class="crm-header-row">
             <div>
-              <h1 class="crm-view-title">Resumen Operativo & Dashboard (Dueña)</h1>
-              <p class="crm-view-desc">Facturación mensual, métricas clave por periodos, citas y evolución histórica del salón.</p>
+              <h1 class="crm-view-title">📊 Resumen Ejecutivo & Finanzas del Salón (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Control financiero integral, evolución mes a mes (2026), margen de utilidad neta, costos fijos y balance operativo.</p>
             </div>
             <div class="header-action-btns">
               <button class="btn-outline" onclick="window.lussoCRM.openManualAppointmentModal()">
@@ -148,7 +148,7 @@
           <!-- Dashboard Period Selector Filter Bar -->
           <div class="dashboard-period-bar mb-4">
             <div class="d-flex align-center gap-2 flex-wrap">
-              <span class="text-sm font-bold text-dark">📅 Visualizar Periodo:</span>
+              <span class="text-sm font-bold text-dark">📅 Periodo a Analizar:</span>
               <select id="dashboard-month-selector" class="filter-select font-bold" onchange="window.lussoCRM && window.lussoCRM.renderDashboard()">
                 <option value="2026-09" selected>✨ Septiembre 2026 (Mes Actual)</option>
                 <option value="2026-08">Agosto 2026</option>
@@ -171,60 +171,68 @@
             </div>
           </div>
 
-          <!-- KPI Cards Grid -->
-          <div class="kpi-grid">
-            <div class="kpi-card clickable" id="kpi-revenue-card" onclick="if (!window.lussoDB.isPrivilegedAdmin()) window.lussoCRM.handleRoleClick();" title="Facturación del periodo. Clic para desbloquear modo Dueña con PIN.">
-              <div class="kpi-header">
-                <span class="kpi-title" id="kpi-revenue-title">Facturación Septiembre 2026</span>
-                <span class="kpi-icon">💰</span>
+          <!-- Executive Financial Health Ribbon (4 KPI Hero Cards) -->
+          <div class="financial-balance-hero mb-4">
+            <div class="financial-hero-grid">
+              <!-- Card 1: Facturación Bruta -->
+              <div class="fin-hero-item clickable" id="kpi-revenue-card" onclick="if (!window.lussoDB.isPrivilegedAdmin()) window.lussoCRM.handleRoleClick();" title="Clic para desbloquear modo Dueña">
+                <div class="fin-hero-label" id="kpi-revenue-title">💰 Facturación del Periodo</div>
+                <div id="kpi-total-revenue" class="fin-hero-val text-primary">S/ ••••••</div>
+                <div id="kpi-revenue-subtitle" class="fin-hero-sub">Ingresos cobrados en servicios</div>
               </div>
-              <div class="kpi-val" id="kpi-total-revenue">S/ ••••••</div>
-              <div class="kpi-subtitle" id="kpi-revenue-subtitle">Monto cobrado en el periodo seleccionado</div>
-            </div>
 
-            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('appointments')">
-              <div class="kpi-header">
-                <span class="kpi-title">Citas de Hoy</span>
-                <span class="kpi-icon">📅</span>
+              <!-- Card 2: Egresos Reales -->
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">📉 Gastos Operativos Reales</div>
+                <div id="kpi-total-expenses" class="fin-hero-val text-red">S/ ••••••</div>
+                <div id="kpi-expenses-subtitle" class="fin-hero-sub">Alquiler S/ 2.5k + Nómina + Facturas</div>
               </div>
-              <div class="kpi-val text-primary" id="kpi-today-appointments">0</div>
-              <div class="kpi-subtitle">Atención programada para hoy</div>
-            </div>
 
-            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('appointments')">
-              <div class="kpi-header">
-                <span class="kpi-title">Citas Pendientes</span>
-                <span class="kpi-icon">⏳</span>
+              <!-- Card 3: Utilidad Neta Real -->
+              <div class="fin-hero-item">
+                <div class="fin-hero-label">💎 Utilidad Neta del Salón</div>
+                <div id="kpi-net-profit" class="fin-hero-val text-glow-green">S/ ••••••</div>
+                <div id="kpi-profit-margin" class="fin-hero-sub">Margen operativo neto</div>
               </div>
-              <div class="kpi-val text-amber" id="kpi-pending-appointments">0</div>
-              <div class="kpi-subtitle">Por confirmar con clientas</div>
-            </div>
 
-            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('sales-history')">
-              <div class="kpi-header">
-                <span class="kpi-title" id="kpi-sales-title">Servicios en Periodo</span>
-                <span class="kpi-icon">🧾</span>
+              <!-- Card 4: Ticket Promedio & Atenciones -->
+              <div class="fin-hero-item clickable" onclick="window.lussoCRM.switchTab('sales-history')">
+                <div class="fin-hero-label">🧾 Ticket Promedio & Atenciones</div>
+                <div id="kpi-avg-ticket" class="fin-hero-val">S/ 0.00</div>
+                <div id="kpi-sales-subtitle" class="fin-hero-sub">0 servicios cobrados</div>
               </div>
-              <div class="kpi-val" id="kpi-total-sales">0</div>
-              <div class="kpi-subtitle" id="kpi-sales-subtitle">Transacciones completadas</div>
             </div>
+          </div>
 
-            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('clients')">
-              <div class="kpi-header">
-                <span class="kpi-title">Total de Clientas</span>
-                <span class="kpi-icon">👥</span>
+          <!-- Smart Business Diagnostics & Strategic KPIs Strip -->
+          <div class="dashboard-diagnostics-bar mb-4">
+            <div class="diag-item">
+              <span class="diag-icon">🏆</span>
+              <div>
+                <span class="diag-title">Mes Récord de Facturación:</span>
+                <strong class="diag-val" id="diag-best-month">Julio 2026 (S/ 8,420.00)</strong>
               </div>
-              <div class="kpi-val" id="kpi-total-clients">0</div>
-              <div class="kpi-subtitle">Fichas en directorio</div>
             </div>
-
-            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('inventory')">
-              <div class="kpi-header">
-                <span class="kpi-title">Insumos por Reponer</span>
-                <span class="kpi-icon">⚠️</span>
+            <div class="diag-item">
+              <span class="diag-icon">📈</span>
+              <div>
+                <span class="diag-title">Promedio Mensual (Mar-Ago):</span>
+                <strong class="diag-val" id="diag-avg-monthly">S/ 7,266.00 / mes</strong>
               </div>
-              <div class="kpi-val text-emerald" id="kpi-low-stock">0</div>
-              <div class="kpi-subtitle">Alertas de stock crítico</div>
+            </div>
+            <div class="diag-item">
+              <span class="diag-icon">👥</span>
+              <div>
+                <span class="diag-title">Base Total de Clientas:</span>
+                <strong class="diag-val" id="diag-clients-stat">213 clientas registradas</strong>
+              </div>
+            </div>
+            <div class="diag-item">
+              <span class="diag-icon">🏢</span>
+              <div>
+                <span class="diag-title">Costo Fijo Mensual:</span>
+                <strong class="diag-val">S/ 2,500.00 (Alquiler Berlín)</strong>
+              </div>
             </div>
           </div>
 
@@ -232,8 +240,8 @@
           <div class="dashboard-card mb-4" id="dashboard-monthly-history-card">
             <div class="dash-card-header">
               <div>
-                <h3 class="dash-card-title">📈 Historial de Ingresos Mes a Mes (2026)</h3>
-                <p class="text-xs text-muted">Detalle organizado de cómo se generaron los ingresos en cada mes: canales de pago (Efectivo, POS, Yape), distribución por especialista y servicios estrella.</p>
+                <h3 class="dash-card-title">📈 Historial Financiero & Comparador Mes a Mes (2026)</h3>
+                <p class="text-xs text-muted">Evolución completa de facturación, egresos totales (renta + nómina + insumos), utilidad neta real, canales de cobro y especialistas.</p>
               </div>
               <span class="badge-tag status-confirmed">7 Meses Registrados</span>
             </div>
@@ -249,22 +257,24 @@
             <!-- Table of Monthly Historical Totals -->
             <div class="table-responsive mt-3">
               <div class="d-flex justify-between align-center mb-2">
-                <span class="text-xs font-bold text-dark">📋 Tabla Comparativa Consolidada:</span>
-                <span class="text-xs text-muted">Clic en cualquier fila para filtrar el dashboard</span>
+                <span class="text-xs font-bold text-dark">📋 Balance y Comparativa Financiera Mensual Consolidada:</span>
+                <span class="text-xs text-muted">💡 Clic en cualquier fila para seleccionar y profundizar en el mes</span>
               </div>
               <table class="lusso-table">
                 <thead>
                   <tr>
                     <th>Mes</th>
-                    <th>Facturación Total</th>
-                    <th>N° Servicios</th>
-                    <th>Ticket Promedio</th>
+                    <th>Facturación</th>
+                    <th>Alquiler Fijo</th>
+                    <th>Nómina Personal</th>
+                    <th>Gastos Totales</th>
+                    <th>Utilidad Neta</th>
+                    <th>Margen %</th>
+                    <th>Atenciones</th>
+                    <th>Ticket Prom.</th>
                     <th>Kiara (💇‍♀️)</th>
                     <th>Cielo (💅)</th>
-                    <th>Efectivo</th>
-                    <th>Tarjeta / POS</th>
-                    <th>Yape / Plin</th>
-                    <th>Servicio Top</th>
+                    <th>Canales Pago</th>
                     <th>Acción</th>
                   </tr>
                 </thead>
@@ -1008,9 +1018,14 @@
                 <div id="fin-income-sub" class="fin-hero-sub">0 transacciones registradas en POS</div>
               </div>
               <div class="fin-hero-item">
+                <div class="fin-hero-label">🏢 Alquiler Fijo Salón</div>
+                <div id="fin-rent-fixed" class="fin-hero-val text-dark">S/ 2,500.00</div>
+                <div class="fin-hero-sub">Gasto mensual fijo Calle Berlín</div>
+              </div>
+              <div class="fin-hero-item">
                 <div class="fin-hero-label">📉 Total Egresos del Salón</div>
                 <div id="fin-total-expenses" class="fin-hero-val text-red">S/ 0.00</div>
-                <div id="fin-expenses-sub" class="fin-hero-sub">Facturas + Servicios + Nómina + Caja</div>
+                <div id="fin-expenses-sub" class="fin-hero-sub">Alquiler + Facturas + Nómina + Caja</div>
               </div>
               <div class="fin-hero-item">
                 <div class="fin-hero-label">💎 Margen / Utilidad Neta</div>
@@ -1020,7 +1035,7 @@
               <div class="fin-hero-item">
                 <div class="fin-hero-label">👥 Nómina & Sueldos Base</div>
                 <div id="fin-payroll-total" class="fin-hero-val">S/ 0.00</div>
-                <div class="fin-hero-sub">Kiara & Cielo (Liquidación 30 días)</div>
+                <div class="fin-hero-sub">Kiara & Cielo (Pagos Quincenales)</div>
               </div>
             </div>
           </div>
@@ -1125,8 +1140,8 @@
         <section id="tab-payroll" class="crm-tab-content">
           <div class="crm-view-header">
             <div>
-              <h1 class="crm-view-title">👥 Asistencia, Faltas y Liquidación de Pagos (🔒 Dueña)</h1>
-              <p class="crm-view-desc">Cálculo legal base 30 días, descuentos por inasistencia, compensación de feriados y propinas en tarjeta 100% íntegras.</p>
+              <h1 class="crm-view-title">👥 Asistencia, Pagos Quincenales & Nómina (🔒 Dueña)</h1>
+              <p class="crm-view-desc">Modalidad quincenal: Día 15 pago fijo del 50% sueldo base (sin descuentos) • Fin de mes saldo del 50% + propinas 100% íntegras + comisiones - deducciones.</p>
             </div>
             <div class="header-action-btns">
               <button class="btn-outline" onclick="window.lussoCRM.openPayrollPdfModal()">
@@ -1145,7 +1160,7 @@
           <div class="payroll-controls-bar mb-4">
             <div class="payroll-filter-item">
               <label class="form-label text-xs">Mes de Liquidación</label>
-              <input type="month" id="payroll-month-selector" class="form-input" value="2026-08">
+              <input type="month" id="payroll-month-selector" class="form-input" value="2026-09">
             </div>
             <div class="payroll-filter-item">
               <label class="form-label text-xs">Filtrar Colaboradora</label>
@@ -1156,7 +1171,7 @@
               </select>
             </div>
             <div class="payroll-legal-tag">
-              <span>🇵🇪 Base Legal: <strong>30 días</strong> (Tarifa/día = Sueldo / 30)</span>
+              <span>🇵🇪 Modalidad: <strong>Quincenal</strong> (Día 15 fijo + Fin de Mes liquidación)</span>
             </div>
           </div>
 

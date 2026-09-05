@@ -639,32 +639,50 @@ class LussoCRM {
     const elRevTitle = document.getElementById('kpi-revenue-title');
     const elRevSub = document.getElementById('kpi-revenue-subtitle');
     const elRevenue = document.getElementById('kpi-total-revenue');
-    const elSalesTitle = document.getElementById('kpi-sales-title');
+    const elExpenses = document.getElementById('kpi-total-expenses');
+    const elExpensesSub = document.getElementById('kpi-expenses-subtitle');
+    const elNetProfit = document.getElementById('kpi-net-profit');
+    const elProfitMargin = document.getElementById('kpi-profit-margin');
+    const elAvgTicket = document.getElementById('kpi-avg-ticket');
     const elSalesSub = document.getElementById('kpi-sales-subtitle');
-    const elTodayApt = document.getElementById('kpi-today-appointments');
-    const elPendingApt = document.getElementById('kpi-pending-appointments');
-    const elTransactions = document.getElementById('kpi-total-sales');
-    const elClients = document.getElementById('kpi-total-clients');
-    const elLowStock = document.getElementById('kpi-low-stock');
     const elPeriodLabel = document.getElementById('dashboard-active-period-label');
+
+    const diagBestMonth = document.getElementById('diag-best-month');
+    const diagAvgMonthly = document.getElementById('diag-avg-monthly');
+    const diagClients = document.getElementById('diag-clients-stat');
 
     const badgeSpec = document.getElementById('badge-spec-period');
     const badgePay = document.getElementById('badge-payment-period');
     const badgeServ = document.getElementById('badge-services-period');
 
-    if (elRevTitle) elRevTitle.textContent = `Facturación ${stats.periodLabel}`;
+    if (elRevTitle) elRevTitle.textContent = `💰 Facturación ${stats.periodLabel}`;
     if (elRevSub) {
       elRevSub.textContent = selectedMonth === 'all' 
-        ? `Facturación total acumulada 2026 (${stats.grandTotalTransactions} servicios)`
-        : `Ingresos registrados en ${stats.periodLabel}`;
+        ? `Facturación acumulada 2026 (${stats.grandTotalTransactions} servicios)`
+        : `Ingresos por servicios en ${stats.periodLabel}`;
     }
-    if (elSalesTitle) elSalesTitle.textContent = `Servicios (${stats.periodLabel})`;
-    if (elSalesSub) elSalesSub.textContent = `Ticket prom: S/ ${stats.avgTicket.toFixed(2)}`;
+    if (elExpensesSub) {
+      elExpensesSub.textContent = `Alquiler S/ ${stats.fixedRent.toFixed(0)} + Nómina S/ ${stats.totalPayroll.toFixed(0)} + Insumos`;
+    }
+    if (elSalesSub) {
+      elSalesSub.textContent = `${stats.totalTransactions} atenciones registradas`;
+    }
 
-    if (elPeriodLabel) elPeriodLabel.textContent = `Periodo: ${stats.periodLabel}`;
+    if (elPeriodLabel) elPeriodLabel.textContent = `Periodo Activo: ${stats.periodLabel}`;
     if (badgeSpec) badgeSpec.textContent = stats.periodLabel;
     if (badgePay) badgePay.textContent = stats.periodLabel;
     if (badgeServ) badgeServ.textContent = stats.periodLabel;
+
+    // Update Diagnostics Strip
+    if (diagBestMonth && stats.bestMonth) {
+      diagBestMonth.textContent = `${stats.bestMonth.label} (S/ ${stats.bestMonth.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })})`;
+    }
+    if (diagAvgMonthly) {
+      diagAvgMonthly.textContent = `S/ ${stats.avgMonthlyRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })} / mes`;
+    }
+    if (diagClients) {
+      diagClients.textContent = `${stats.totalClients} clientas en directorio`;
+    }
 
     if (elRevenue) {
       if (isAdmin) {
@@ -675,13 +693,37 @@ class LussoCRM {
         elRevenue.classList.add('text-masked');
       }
     }
-    if (elTodayApt) elTodayApt.textContent = stats.todayAppointmentsCount || 0;
-    if (elPendingApt) elPendingApt.textContent = stats.pendingAppointmentsCount || 0;
-    if (elTransactions) elTransactions.textContent = stats.totalTransactions;
-    if (elClients) elClients.textContent = stats.totalClients;
-    if (elLowStock) {
-      elLowStock.textContent = stats.lowStockCount;
-      elLowStock.className = `kpi-val ${stats.lowStockCount > 0 ? 'text-amber' : 'text-emerald'}`;
+
+    if (elExpenses) {
+      if (isAdmin) {
+        elExpenses.textContent = `S/ ${stats.totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+        elExpenses.classList.remove('text-masked');
+      } else {
+        elExpenses.innerHTML = `<span class="masked-revenue">••••••</span>`;
+        elExpenses.classList.add('text-masked');
+      }
+    }
+
+    if (elNetProfit) {
+      if (isAdmin) {
+        elNetProfit.textContent = `S/ ${stats.netProfit.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+        elNetProfit.className = `fin-hero-val ${stats.netProfit >= 0 ? 'text-glow-green' : 'text-red'}`;
+      } else {
+        elNetProfit.innerHTML = `<span class="masked-revenue">••••••</span>`;
+        elNetProfit.className = 'fin-hero-val text-muted';
+      }
+    }
+
+    if (elProfitMargin) {
+      if (isAdmin) {
+        elProfitMargin.textContent = `${stats.profitMargin.toFixed(1)}% de margen operativo neto`;
+      } else {
+        elProfitMargin.textContent = '🔒 Requiere PIN Dueña';
+      }
+    }
+
+    if (elAvgTicket) {
+      elAvgTicket.textContent = `S/ ${stats.avgTicket.toFixed(2)}`;
     }
 
     this.renderDashboardMonthlyHistory(stats.monthlyHistory, selectedMonth);
@@ -708,7 +750,7 @@ class LussoCRM {
             const pct = Math.round((h.totalRevenue / maxRev) * 100);
             const isSelected = h.month === activeMonth;
             return `
-              <div class="monthly-bar-col ${isSelected ? 'active' : ''}" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')" title="${h.label}: S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })} (${h.salesCount} servicios)">
+              <div class="monthly-bar-col ${isSelected ? 'active' : ''}" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')" title="${h.label}: S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })} • Utilidad: S/ ${h.netProfit.toFixed(2)} (${h.salesCount} servicios)">
                 <div class="bar-fill-wrap">
                   <div class="bar-fill-fill" style="height: ${Math.max(14, pct)}%;">
                     <span class="bar-fill-val">S/ ${Math.round(h.totalRevenue)}</span>
@@ -743,6 +785,29 @@ class LussoCRM {
               <div class="msc-sub-stats">
                 <span class="msc-stat-pill">🧾 ${h.salesCount} atenciones</span>
                 <span class="msc-stat-pill">🎯 Ticket S/ ${h.avgTicket.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <!-- Resumen Financiero del Mes -->
+            <div class="msc-section">
+              <div class="msc-section-label">⚖️ Balance Financiero Real:</div>
+              <div class="msc-payment-bars">
+                <div class="msc-expenses-row">
+                  <span>🏢 Alquiler Fijo:</span>
+                  <strong>S/ ${h.fixedRent.toFixed(2)}</strong>
+                </div>
+                <div class="msc-expenses-row">
+                  <span>👥 Nómina (Kiara & Cielo):</span>
+                  <strong>S/ ${h.payrollTotal.toFixed(2)}</strong>
+                </div>
+                <div class="msc-expenses-row">
+                  <span>📉 Gastos Totales:</span>
+                  <strong class="text-red">S/ ${h.totalExpenses.toFixed(2)}</strong>
+                </div>
+                <div class="msc-profit-badge ${h.netProfit >= 0 ? 'is-pos' : 'is-neg'} mt-1">
+                  <span>💎 Utilidad Neta Real:</span>
+                  <strong>${h.netProfit >= 0 ? '+' : ''}S/ ${h.netProfit.toLocaleString('es-PE', { minimumFractionDigits: 2 })} (${h.profitMargin}%)</strong>
+                </div>
               </div>
             </div>
 
@@ -793,7 +858,7 @@ class LussoCRM {
             <!-- Actions -->
             <div class="msc-footer-row">
               <button type="button" class="btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'} flex-1" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')">
-                ${isSelected ? '✓ Viendo en Dashboard' : '📊 Filtrar Dashboard'}
+                ${isSelected ? '✓ Viendo en Dashboard' : '📊 Analizar Mes'}
               </button>
               <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.viewSalesHistoryForMonth('${h.month}')" title="Ver lista completa de cobros de este mes">
                 🔍 Ver Cobros ↗
@@ -808,6 +873,10 @@ class LussoCRM {
     if (tableBody) {
       tableBody.innerHTML = historyList.map(h => {
         const isSelected = h.month === activeMonth;
+        const profitBadge = h.netProfit >= 0 
+          ? `<span class="badge-profit-pos">▲ +S/ ${h.netProfit.toFixed(0)}</span>`
+          : `<span class="badge-profit-neg">▼ S/ ${h.netProfit.toFixed(0)}</span>`;
+
         return `
           <tr class="${isSelected ? 'row-highlight-active' : ''}" style="${isSelected ? 'background: #fffbeb; font-weight: 600;' : ''}">
             <td>
@@ -817,19 +886,25 @@ class LussoCRM {
             <td>
               <strong class="text-primary font-bold">S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</strong>
             </td>
-            <td>${h.salesCount} servicios</td>
+            <td class="text-xs">S/ ${h.fixedRent.toFixed(2)}</td>
+            <td class="text-xs">S/ ${h.payrollTotal.toFixed(2)}</td>
+            <td>
+              <span class="text-xs text-red font-bold">S/ ${h.totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+            </td>
+            <td>${profitBadge}</td>
+            <td>
+              <span class="font-bold ${h.profitMargin >= 0 ? 'text-emerald' : 'text-red'}">${h.profitMargin.toFixed(1)}%</span>
+            </td>
+            <td>${h.salesCount} serv.</td>
             <td>S/ ${h.avgTicket.toFixed(2)}</td>
             <td>
-              <span class="text-xs font-bold">💇‍♀️ S/ ${h.kiaraRevenue.toFixed(2)}</span>
+              <span class="text-xs font-bold">💇‍♀️ S/ ${h.kiaraRevenue.toFixed(0)}</span>
             </td>
             <td>
-              <span class="text-xs font-bold">💅 S/ ${h.cieloRevenue.toFixed(2)}</span>
+              <span class="text-xs font-bold">💅 S/ ${h.cieloRevenue.toFixed(0)}</span>
             </td>
-            <td>💵 S/ ${h.cashTotal.toFixed(2)}</td>
-            <td>💳 S/ ${h.posTotal.toFixed(2)}</td>
-            <td>📱 S/ ${h.digitalTotal.toFixed(2)}</td>
-            <td>
-              <span class="text-xs text-muted font-bold">${h.topService}</span>
+            <td class="text-xs">
+              💳 ${h.payment.pos.pct}% • 📱 ${h.payment.yape.pct}% • 💵 ${h.payment.cash.pct}%
             </td>
             <td>
               <button type="button" class="btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')">
@@ -2906,7 +2981,7 @@ class LussoCRM {
     if (elIncome) elIncome.textContent = `S/ ${balance.totalIncome.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
     if (elIncomeSub) elIncomeSub.textContent = `${balance.salesCount} servicios cobrados en POS`;
     if (elExpenses) elExpenses.textContent = `S/ ${balance.totalExpenses.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
-    if (elExpensesSub) elExpensesSub.textContent = `Facturas S/ ${balance.totalInvoices.toFixed(0)} + Caja S/ ${balance.totalPettyCash.toFixed(0)} + Nómina S/ ${balance.totalPayroll.toFixed(0)}`;
+    if (elExpensesSub) elExpensesSub.textContent = `Alquiler Fijo S/ ${balance.fixedRent.toFixed(0)} + Facturas S/ ${balance.totalInvoices.toFixed(0)} + Nómina S/ ${balance.totalPayroll.toFixed(0)} + Caja S/ ${balance.totalPettyCash.toFixed(0)}`;
     if (elProfit) {
       elProfit.textContent = `S/ ${balance.netProfit.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
       elProfit.className = `fin-hero-val ${balance.netProfit >= 0 ? 'text-glow-green' : 'text-red'}`;
@@ -3065,6 +3140,37 @@ class LussoCRM {
               Base legal 30 días: <strong>S/ ${p.dailyRate.toFixed(2)} / día</strong>
             </div>
 
+            <!-- Quincenas Breakdown Cards -->
+            <div class="payroll-fortnights-grid">
+              <!-- 1ra Quincena -->
+              <div class="payroll-fn-card fn-first">
+                <div class="payroll-fn-header">
+                  <span class="payroll-fn-title">🗓️ 1ra Quincena (Día 15)</span>
+                  <span class="payroll-fn-badge badge-fixed">Pago Fijo</span>
+                </div>
+                <div class="payroll-fn-amount text-primary">S/ ${p.firstFortnightPayment.toFixed(2)}</div>
+                <div class="payroll-fn-note">
+                  50% de sueldo base íntegro. <strong>Sin descuentos</strong> por faltas ni tardanzas.
+                </div>
+              </div>
+
+              <!-- 2da Quincena / Fin de Mes -->
+              <div class="payroll-fn-card fn-second">
+                <div class="payroll-fn-header">
+                  <span class="payroll-fn-title">🗓️ Fin de Mes (Día 30/31)</span>
+                  <span class="payroll-fn-badge badge-adjusted">Liquidación</span>
+                </div>
+                <div class="payroll-fn-amount text-emerald">S/ ${p.secondFortnightPayment.toFixed(2)}</div>
+                <div class="payroll-fn-note">
+                  50% base (S/ ${p.secondFortnightBase.toFixed(2)}) + propinas + comisiones - descuentos.
+                </div>
+              </div>
+            </div>
+
+            <div class="text-xs font-bold text-dark mb-2" style="text-transform: uppercase; letter-spacing: 0.04em; color: var(--burgundy);">
+              📊 Conceptos & Ajustes de Cierre de Mes:
+            </div>
+
             ${p.totalDeductions > 0 ? `
               <div class="payroll-line text-red">
                 <span class="p-label">⚠️ Descuentos por Inasistencias / Tardanzas:</span>
@@ -3096,13 +3202,13 @@ class LussoCRM {
 
             ${p.totalBonuses > 0 ? `
               <div class="payroll-line text-amber">
-                <span class="p-label">⭐ Bonos por Metas / Desempeño:</span>
+                <span class="p-label">⭐ Comisiones Insumos / Bonos Desempeño:</span>
                 <span class="p-val font-bold">+ S/ ${p.totalBonuses.toFixed(2)}</span>
               </div>
             ` : ''}
 
             <div class="payroll-net-box">
-              <div class="net-title">TOTAL NETO A PAGAR A FIN DE MES</div>
+              <div class="net-title">TOTAL ACUMULADO DEL MES (1RA + 2DA QUINCENA)</div>
               <div class="net-amount">S/ ${p.netPayable.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</div>
             </div>
           </div>
@@ -3311,8 +3417,17 @@ class LussoCRM {
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const monthDisplayName = `${monthNames[parseInt(monthNum, 10) - 1] || 'Mes'} ${year}`;
 
-    let msg = `¡Hola ${p.specialist}! 💖✨ Te compartimos tu resumen de liquidación de *Lusso Beauty Salón* correspondiente a *${monthDisplayName}*:\n\n`;
-    msg += `💼 *Sueldo Base (Base 30 días):* S/ ${p.baseSalary.toFixed(2)} (S/ ${p.dailyRate.toFixed(2)}/día)\n`;
+    let msg = `¡Hola ${p.specialist}! 💖✨ Te compartimos tu resumen y liquidación de pagos de *Lusso Beauty Salón* correspondiente a *${monthDisplayName}*:\n\n`;
+    msg += `💼 *Sueldo Base Mensual:* S/ ${p.baseSalary.toFixed(2)} (Base legal 30 días: S/ ${p.dailyRate.toFixed(2)}/día)\n\n`;
+
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `🗓️ *1RA QUINCENA (Día 15 del Mes):*\n`;
+    msg += `💳 *Abono Fijo (50% Base):* *S/ ${p.firstFortnightPayment.toFixed(2)}*\n`;
+    msg += `_(Pago íntegro sin descuentos por política interna)_\n\n`;
+
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `🗓️ *2DA QUINCENA / FIN DE MES:*\n`;
+    msg += `💼 *50% Sueldo Base:* S/ ${p.secondFortnightBase.toFixed(2)}\n`;
 
     if (p.totalDeductions > 0) {
       msg += `⚠️ *Descuentos por Inasistencias/Tardanzas:* -S/ ${p.totalDeductions.toFixed(2)}\n`;
@@ -3325,16 +3440,19 @@ class LussoCRM {
     }
 
     if (p.totalTips > 0) {
-      msg += `🎁 *Propinas de Clientas (100% Íntegras sin retención):* +S/ ${p.totalTips.toFixed(2)}\n`;
+      msg += `🎁 *Propinas en POS/Tarjeta (100% Íntegras):* +S/ ${p.totalTips.toFixed(2)}\n`;
     }
 
     if (p.totalCommissions > 0) {
-      msg += `📦 *Comisiones por Venta de Ampollas & Insumos:* +S/ ${p.totalCommissions.toFixed(2)}\n`;
+      msg += `📦 *Comisiones por Insumos/Ampollas:* +S/ ${p.totalCommissions.toFixed(2)}\n`;
     }
 
-    msg += `───────────────────────────────\n`;
-    msg += `💵 *TOTAL NETO A PAGAR:* *S/ ${p.netPayable.toLocaleString('es-PE', { minimumFractionDigits: 2 })}*\n\n`;
-    msg += `¡Muchas gracias por tu compromiso y excelente trabajo en el salón este mes! 💅💇‍♀️✨`;
+    msg += `👉 *Subtotal a Abonar Fin de Mes:* *S/ ${p.secondFortnightPayment.toFixed(2)}*\n\n`;
+
+    msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `💵 *TOTAL ACUMULADO DEL MES:* *S/ ${p.netPayable.toLocaleString('es-PE', { minimumFractionDigits: 2 })}*\n`;
+    msg += `(1ra Quincena S/ ${p.firstFortnightPayment.toFixed(2)} + Fin de Mes S/ ${p.secondFortnightPayment.toFixed(2)})\n\n`;
+    msg += `¡Muchas gracias por tu compromiso y excelente trabajo en el salón! 💅💇‍♀️✨`;
 
     const phone = p.phone ? `51${p.phone}` : '51971988386';
     const encoded = encodeURIComponent(msg);
@@ -3394,11 +3512,30 @@ class LussoCRM {
           </div>
           <div class="info-row">
             <div><span class="info-lbl">CARGO:</span> <span class="info-val">${roleName}</span></div>
-            <div><span class="info-lbl">TIPO DE PAGO:</span> <span class="info-val">Sueldo Fijo Mensual</span></div>
+            <div><span class="info-lbl">MODALIDAD DE PAGO:</span> <span class="info-val">Pagos Quincenales (Día 15 & Fin de Mes)</span></div>
           </div>
           <div class="info-row">
             <div><span class="info-lbl">MÉTODO DE PAGO:</span> <span class="info-val">${paymentMethod}</span></div>
             <div><span class="info-lbl">BASE LEGAL:</span> <span class="info-val">30 días (Tarifa S/ ${p.dailyRate.toFixed(2)}/día)</span></div>
+          </div>
+        </div>
+
+        <!-- Quincenas Summary Box -->
+        <div style="margin-bottom: 12px; background: #fdfbf9; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px;">
+          <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #6b1426; margin-bottom: 8px; letter-spacing: 0.03em;">
+            🗓️ Desglose de Pagos Quincenales:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 3px solid #d9a74a; padding: 8px 10px; border-radius: 4px;">
+              <div style="font-size: 0.72rem; font-weight: 700; color: #6b7280;">1RA QUINCENA (DÍA 15)</div>
+              <div style="font-size: 1.15rem; font-weight: 900; color: #6b1426; margin: 2px 0;">S/ ${p.firstFortnightPayment.toFixed(2)}</div>
+              <div style="font-size: 0.68rem; color: #9ca3af;">50% base fijo acordado (sin descuentos)</div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 3px solid #10b981; padding: 8px 10px; border-radius: 4px;">
+              <div style="font-size: 0.72rem; font-weight: 700; color: #6b7280;">2DA QUINCENA / FIN DE MES</div>
+              <div style="font-size: 1.15rem; font-weight: 900; color: #047857; margin: 2px 0;">S/ ${p.secondFortnightPayment.toFixed(2)}</div>
+              <div style="font-size: 0.68rem; color: #9ca3af;">50% base + propinas + comisiones - descuentos</div>
+            </div>
           </div>
         </div>
 
@@ -3495,8 +3632,8 @@ class LussoCRM {
         <!-- Net Total Box -->
         <div class="boleta-net-total-row">
           <div class="net-left">
-            <span class="net-label">TOTAL NETO A LIQUIDAR / DEPOSITAR:</span>
-            <span class="net-currency">PEN (Soles Peruanos)</span>
+            <span class="net-label">TOTAL CONSOLIDADO MENSUAL:</span>
+            <span class="net-currency">PEN (Soles Peruanos) • 1ra Quincena + Fin de Mes</span>
           </div>
           <div class="net-right font-bold">
             S/ ${p.netPayable.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -3506,7 +3643,7 @@ class LussoCRM {
         <!-- Observaciones y Notas -->
         <div class="boleta-notes-box">
           <strong>Observaciones de Nómina:</strong>
-          Liquidación mensual calculada conforme a la política interna de Lusso Beauty Salón (base de cálculo de 30 días según la normativa peruana). Propinas y comisiones de productos transferidas en su totalidad sin retención.
+          Liquidación mensual calculada conforme a la política interna de Lusso Beauty Salón (base legal de 30 días según la normativa peruana, modalidad quincenal: día 15 pago fijo 50% y fin de mes liquidación con propinas, comisiones y deducciones). Propinas y comisiones transferidas al 100% sin retención.
         </div>
 
         <!-- Signatures Box -->
