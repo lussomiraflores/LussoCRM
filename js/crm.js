@@ -611,16 +611,60 @@ class LussoCRM {
   }
 
   // ================= DASHBOARD =================
+  setDashboardPeriod(period) {
+    const selector = document.getElementById('dashboard-month-selector');
+    if (selector) {
+      selector.value = period;
+    }
+    // Update active state on quick buttons
+    const btnSep = document.getElementById('btn-period-sep');
+    const btnAug = document.getElementById('btn-period-aug');
+    const btnJul = document.getElementById('btn-period-jul');
+    const btnAll = document.getElementById('btn-period-all');
+    [btnSep, btnAug, btnJul, btnAll].forEach(b => b && b.classList.remove('active'));
+    if (period === '2026-09' && btnSep) btnSep.classList.add('active');
+    else if (period === '2026-08' && btnAug) btnAug.classList.add('active');
+    else if (period === '2026-07' && btnJul) btnJul.classList.add('active');
+    else if (period === 'all' && btnAll) btnAll.classList.add('active');
+
+    this.renderDashboard();
+  }
+
   renderDashboard() {
-    const stats = window.lussoDB.getDashboardStats();
+    const selector = document.getElementById('dashboard-month-selector');
+    const selectedMonth = selector ? selector.value : '2026-09';
+    const stats = window.lussoDB.getDashboardStats(selectedMonth);
     const isAdmin = window.lussoDB.isPrivilegedAdmin();
     
+    const elRevTitle = document.getElementById('kpi-revenue-title');
+    const elRevSub = document.getElementById('kpi-revenue-subtitle');
     const elRevenue = document.getElementById('kpi-total-revenue');
+    const elSalesTitle = document.getElementById('kpi-sales-title');
+    const elSalesSub = document.getElementById('kpi-sales-subtitle');
     const elTodayApt = document.getElementById('kpi-today-appointments');
     const elPendingApt = document.getElementById('kpi-pending-appointments');
     const elTransactions = document.getElementById('kpi-total-sales');
     const elClients = document.getElementById('kpi-total-clients');
     const elLowStock = document.getElementById('kpi-low-stock');
+    const elPeriodLabel = document.getElementById('dashboard-active-period-label');
+
+    const badgeSpec = document.getElementById('badge-spec-period');
+    const badgePay = document.getElementById('badge-payment-period');
+    const badgeServ = document.getElementById('badge-services-period');
+
+    if (elRevTitle) elRevTitle.textContent = `Facturación ${stats.periodLabel}`;
+    if (elRevSub) {
+      elRevSub.textContent = selectedMonth === 'all' 
+        ? `Facturación total acumulada 2026 (${stats.grandTotalTransactions} servicios)`
+        : `Ingresos registrados en ${stats.periodLabel}`;
+    }
+    if (elSalesTitle) elSalesTitle.textContent = `Servicios (${stats.periodLabel})`;
+    if (elSalesSub) elSalesSub.textContent = `Ticket prom: S/ ${stats.avgTicket.toFixed(2)}`;
+
+    if (elPeriodLabel) elPeriodLabel.textContent = `Periodo: ${stats.periodLabel}`;
+    if (badgeSpec) badgeSpec.textContent = stats.periodLabel;
+    if (badgePay) badgePay.textContent = stats.periodLabel;
+    if (badgeServ) badgeServ.textContent = stats.periodLabel;
 
     if (elRevenue) {
       if (isAdmin) {
@@ -640,11 +684,175 @@ class LussoCRM {
       elLowStock.className = `kpi-val ${stats.lowStockCount > 0 ? 'text-amber' : 'text-emerald'}`;
     }
 
+    this.renderDashboardMonthlyHistory(stats.monthlyHistory, selectedMonth);
     this.renderDashboardTodayAppointments(stats.todayAppointments || []);
     this.renderSpecialistChart(stats.specialists);
     this.renderPaymentMethodChart(stats.paymentMethods);
     this.renderTopServicesList(stats.topServices);
     this.renderLowStockAlerts(stats.lowStockItems);
+  }
+
+  renderDashboardMonthlyHistory(historyList, activeMonth) {
+    const tableBody = document.getElementById('dashboard-monthly-table-body');
+    const barsContainer = document.getElementById('dashboard-monthly-bars-container');
+    const cardsGrid = document.getElementById('dashboard-monthly-cards-grid');
+    if (!historyList || historyList.length === 0) return;
+
+    const maxRev = Math.max(...historyList.map(h => h.totalRevenue), 1);
+
+    // 1. Visual Monthly Trend Bars
+    if (barsContainer) {
+      barsContainer.innerHTML = `
+        <div class="monthly-bars-track">
+          ${historyList.slice().reverse().map(h => {
+            const pct = Math.round((h.totalRevenue / maxRev) * 100);
+            const isSelected = h.month === activeMonth;
+            return `
+              <div class="monthly-bar-col ${isSelected ? 'active' : ''}" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')" title="${h.label}: S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })} (${h.salesCount} servicios)">
+                <div class="bar-fill-wrap">
+                  <div class="bar-fill-fill" style="height: ${Math.max(14, pct)}%;">
+                    <span class="bar-fill-val">S/ ${Math.round(h.totalRevenue)}</span>
+                  </div>
+                </div>
+                <div class="bar-month-tag">${h.label.split(' ')[0].substring(0, 3)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // 2. Month Cards Grid (Detailed Month-by-Month Story)
+    if (cardsGrid) {
+      cardsGrid.innerHTML = historyList.map(h => {
+        const isSelected = h.month === activeMonth;
+        const growthBadge = h.growthPct > 0 
+          ? `<span class="month-trend-badge trend-up">▲ +${h.growthPct}%</span>`
+          : (h.growthPct < 0 && h.month !== '2026-09' ? `<span class="month-trend-badge trend-down">▼ ${h.growthPct}%</span>` : '');
+
+        return `
+          <div class="monthly-story-card ${isSelected ? 'active-card' : ''}">
+            <div class="msc-header">
+              <div>
+                <div class="msc-title-row">
+                  <h4 class="msc-month-title">${h.label}</h4>
+                  ${h.month === '2026-09' ? '<span class="badge-tag status-confirmed text-2xs">Mes en Curso</span>' : growthBadge}
+                </div>
+                <div class="msc-revenue-big">S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</div>
+              </div>
+              <div class="msc-sub-stats">
+                <span class="msc-stat-pill">🧾 ${h.salesCount} atenciones</span>
+                <span class="msc-stat-pill">🎯 Ticket S/ ${h.avgTicket.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <!-- Canales de Pago (Cómo se cobró) -->
+            <div class="msc-section">
+              <div class="msc-section-label">💳 Canales de Ingreso:</div>
+              <div class="msc-payment-bars">
+                <div class="msc-pay-item" title="POS / Tarjeta: S/ ${h.payment.pos.amount.toFixed(2)}">
+                  <span class="msc-pay-label">💳 POS / Tarjetas</span>
+                  <span class="msc-pay-val">S/ ${h.payment.pos.amount.toFixed(2)} (${h.payment.pos.pct}%)</span>
+                </div>
+                <div class="msc-pay-item" title="Yape / Billeteras: S/ ${h.payment.yape.amount.toFixed(2)}">
+                  <span class="msc-pay-label">📱 Yape / Plin</span>
+                  <span class="msc-pay-val">S/ ${h.payment.yape.amount.toFixed(2)} (${h.payment.yape.pct}%)</span>
+                </div>
+                <div class="msc-pay-item" title="Efectivo: S/ ${h.payment.cash.amount.toFixed(2)}">
+                  <span class="msc-pay-label">💵 Efectivo</span>
+                  <span class="msc-pay-val">S/ ${h.payment.cash.amount.toFixed(2)} (${h.payment.cash.pct}%)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Desglose Especialista -->
+            <div class="msc-section">
+              <div class="msc-section-label">👥 Rendimiento por Colaboradora:</div>
+              <div class="msc-spec-row">
+                <div class="msc-spec-box">
+                  <span class="msc-spec-name">💇‍♀️ Kiara</span>
+                  <strong>S/ ${h.specialists.kiara.amount.toFixed(2)}</strong>
+                  <span class="text-2xs text-muted">(${h.specialists.kiara.count} serv • ${h.specialists.kiara.pct}%)</span>
+                </div>
+                <div class="msc-spec-box">
+                  <span class="msc-spec-name">💅 Cielo</span>
+                  <strong>S/ ${h.specialists.cielo.amount.toFixed(2)}</strong>
+                  <span class="text-2xs text-muted">(${h.specialists.cielo.count} serv • ${h.specialists.cielo.pct}%)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Servicios -->
+            <div class="msc-section">
+              <div class="msc-section-label">✨ Servicios Estrella:</div>
+              <div class="msc-top-tags">
+                ${h.topServices.map(s => `<span class="top-srv-tag">${s}</span>`).join('')}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="msc-footer-row">
+              <button type="button" class="btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'} flex-1" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')">
+                ${isSelected ? '✓ Viendo en Dashboard' : '📊 Filtrar Dashboard'}
+              </button>
+              <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.viewSalesHistoryForMonth('${h.month}')" title="Ver lista completa de cobros de este mes">
+                🔍 Ver Cobros ↗
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 3. Consolidated Table
+    if (tableBody) {
+      tableBody.innerHTML = historyList.map(h => {
+        const isSelected = h.month === activeMonth;
+        return `
+          <tr class="${isSelected ? 'row-highlight-active' : ''}" style="${isSelected ? 'background: #fffbeb; font-weight: 600;' : ''}">
+            <td>
+              <strong>${h.label}</strong>
+              ${h.month === '2026-09' ? '<span class="badge-tag status-confirmed ml-1" style="font-size: 0.65rem; padding: 2px 6px;">Mes Actual</span>' : ''}
+            </td>
+            <td>
+              <strong class="text-primary font-bold">S/ ${h.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</strong>
+            </td>
+            <td>${h.salesCount} servicios</td>
+            <td>S/ ${h.avgTicket.toFixed(2)}</td>
+            <td>
+              <span class="text-xs font-bold">💇‍♀️ S/ ${h.kiaraRevenue.toFixed(2)}</span>
+            </td>
+            <td>
+              <span class="text-xs font-bold">💅 S/ ${h.cieloRevenue.toFixed(2)}</span>
+            </td>
+            <td>💵 S/ ${h.cashTotal.toFixed(2)}</td>
+            <td>💳 S/ ${h.posTotal.toFixed(2)}</td>
+            <td>📱 S/ ${h.digitalTotal.toFixed(2)}</td>
+            <td>
+              <span class="text-xs text-muted font-bold">${h.topService}</span>
+            </td>
+            <td>
+              <button type="button" class="btn-xs ${isSelected ? 'btn-primary' : 'btn-outline'}" onclick="window.lussoCRM.setDashboardPeriod('${h.month}')">
+                ${isSelected ? '✓ Seleccionado' : '🔍 Ver Mes'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  viewSalesHistoryForMonth(month) {
+    this.switchTab('sales-history');
+    const select = document.getElementById('sales-history-quick-date');
+    if (select) {
+      select.value = month;
+      this.salesHistoryQuickDate = month;
+      const dateEl = document.getElementById('sales-history-date');
+      if (dateEl) dateEl.value = '';
+      this.salesHistoryFilterDate = '';
+      this.renderSalesHistory();
+    }
   }
 
   renderDashboardTodayAppointments(appointments) {
@@ -2253,6 +2461,8 @@ class LussoCRM {
         if (s.date !== todayStr) return false;
       } else if (quickDate === 'month') {
         if (!s.date || !s.date.startsWith(currentMonth)) return false;
+      } else if (/^\d{4}-\d{2}$/.test(quickDate)) {
+        if (!s.date || !s.date.startsWith(quickDate)) return false;
       }
 
       // Specialist filter

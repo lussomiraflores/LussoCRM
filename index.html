@@ -132,8 +132,8 @@
         <section id="tab-dashboard" class="crm-tab-content">
           <div class="crm-header-row">
             <div>
-              <h1 class="crm-view-title">Resumen Operativo del Salón</h1>
-              <p class="crm-view-desc">Métricas clave, citas del día y estado del salón en tiempo real.</p>
+              <h1 class="crm-view-title">Resumen Operativo & Dashboard (Dueña)</h1>
+              <p class="crm-view-desc">Facturación mensual, métricas clave por periodos, citas y evolución histórica del salón.</p>
             </div>
             <div class="header-action-btns">
               <button class="btn-outline" onclick="window.lussoCRM.openManualAppointmentModal()">
@@ -145,15 +145,41 @@
             </div>
           </div>
 
+          <!-- Dashboard Period Selector Filter Bar -->
+          <div class="dashboard-period-bar mb-4">
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <span class="text-sm font-bold text-dark">📅 Visualizar Periodo:</span>
+              <select id="dashboard-month-selector" class="filter-select font-bold" onchange="window.lussoCRM && window.lussoCRM.renderDashboard()">
+                <option value="2026-09" selected>✨ Septiembre 2026 (Mes Actual)</option>
+                <option value="2026-08">Agosto 2026</option>
+                <option value="2026-07">Julio 2026</option>
+                <option value="2026-06">Junio 2026</option>
+                <option value="2026-05">Mayo 2026</option>
+                <option value="2026-04">Abril 2026</option>
+                <option value="2026-03">Marzo 2026</option>
+                <option value="all">📊 Todo el Histórico Consolidado (2026)</option>
+              </select>
+              <div class="period-quick-tags">
+                <button type="button" class="btn-xs btn-outline active" id="btn-period-sep" onclick="window.lussoCRM.setDashboardPeriod('2026-09')">Septiembre</button>
+                <button type="button" class="btn-xs btn-outline" id="btn-period-aug" onclick="window.lussoCRM.setDashboardPeriod('2026-08')">Agosto</button>
+                <button type="button" class="btn-xs btn-outline" id="btn-period-jul" onclick="window.lussoCRM.setDashboardPeriod('2026-07')">Julio</button>
+                <button type="button" class="btn-xs btn-outline" id="btn-period-all" onclick="window.lussoCRM.setDashboardPeriod('all')">Todo 2026</button>
+              </div>
+            </div>
+            <div id="dashboard-active-period-label" class="badge-tag status-confirmed">
+              Periodo Activo: Septiembre 2026
+            </div>
+          </div>
+
           <!-- KPI Cards Grid -->
           <div class="kpi-grid">
-            <div class="kpi-card" id="kpi-revenue-card">
+            <div class="kpi-card clickable" id="kpi-revenue-card" onclick="if (!window.lussoDB.isPrivilegedAdmin()) window.lussoCRM.handleRoleClick();" title="Facturación del periodo. Clic para desbloquear modo Dueña con PIN.">
               <div class="kpi-header">
-                <span class="kpi-title">Ingresos Totales (2026)</span>
+                <span class="kpi-title" id="kpi-revenue-title">Facturación Septiembre 2026</span>
                 <span class="kpi-icon">💰</span>
               </div>
               <div class="kpi-val" id="kpi-total-revenue">S/ ••••••</div>
-              <div class="kpi-subtitle">Facturación acumulada registrada</div>
+              <div class="kpi-subtitle" id="kpi-revenue-subtitle">Monto cobrado en el periodo seleccionado</div>
             </div>
 
             <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('appointments')">
@@ -174,13 +200,13 @@
               <div class="kpi-subtitle">Por confirmar con clientas</div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('sales-history')">
               <div class="kpi-header">
-                <span class="kpi-title">Servicios Cobrados</span>
+                <span class="kpi-title" id="kpi-sales-title">Servicios en Periodo</span>
                 <span class="kpi-icon">🧾</span>
               </div>
               <div class="kpi-val" id="kpi-total-sales">0</div>
-              <div class="kpi-subtitle">Transacciones completadas</div>
+              <div class="kpi-subtitle" id="kpi-sales-subtitle">Transacciones completadas</div>
             </div>
 
             <div class="kpi-card clickable" onclick="window.lussoCRM.switchTab('clients')">
@@ -202,6 +228,53 @@
             </div>
           </div>
 
+          <!-- Section: Historical Monthly Comparison Table & Breakdown -->
+          <div class="dashboard-card mb-4" id="dashboard-monthly-history-card">
+            <div class="dash-card-header">
+              <div>
+                <h3 class="dash-card-title">📈 Historial de Ingresos Mes a Mes (2026)</h3>
+                <p class="text-xs text-muted">Detalle organizado de cómo se generaron los ingresos en cada mes: canales de pago (Efectivo, POS, Yape), distribución por especialista y servicios estrella.</p>
+              </div>
+              <span class="badge-tag status-confirmed">7 Meses Registrados</span>
+            </div>
+
+            <!-- Visual Bar Comparison -->
+            <div id="dashboard-monthly-bars-container" class="monthly-bars-container mb-4"></div>
+
+            <!-- Month Cards Grid (Detailed Month-by-Month Story) -->
+            <div id="dashboard-monthly-cards-grid" class="monthly-story-cards-grid mb-4">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Table of Monthly Historical Totals -->
+            <div class="table-responsive mt-3">
+              <div class="d-flex justify-between align-center mb-2">
+                <span class="text-xs font-bold text-dark">📋 Tabla Comparativa Consolidada:</span>
+                <span class="text-xs text-muted">Clic en cualquier fila para filtrar el dashboard</span>
+              </div>
+              <table class="lusso-table">
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Facturación Total</th>
+                    <th>N° Servicios</th>
+                    <th>Ticket Promedio</th>
+                    <th>Kiara (💇‍♀️)</th>
+                    <th>Cielo (💅)</th>
+                    <th>Efectivo</th>
+                    <th>Tarjeta / POS</th>
+                    <th>Yape / Plin</th>
+                    <th>Servicio Top</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-monthly-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Section: Today Appointments Schedule in Dashboard -->
           <div class="dashboard-card mb-4">
             <div class="dash-card-header">
@@ -220,13 +293,19 @@
           <div class="dashboard-grid-2">
             <!-- Specialist Performance -->
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">Atención por Especialista</h3>
+              <div class="dash-card-header mb-3">
+                <h3 class="dash-card-title">Atención por Especialista</h3>
+                <span id="badge-spec-period" class="badge-tag">Septiembre 2026</span>
+              </div>
               <div id="chart-specialists" class="chart-container-clean"></div>
             </div>
 
             <!-- Payment Methods Breakdown -->
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">Métodos de Pago Utilizados</h3>
+              <div class="dash-card-header mb-3">
+                <h3 class="dash-card-title">Métodos de Pago Utilizados</h3>
+                <span id="badge-payment-period" class="badge-tag">Septiembre 2026</span>
+              </div>
               <div id="chart-payment-methods" class="chart-container-clean"></div>
             </div>
           </div>
@@ -234,7 +313,10 @@
           <!-- Bottom Row: Top Services & Low Stock Alerts -->
           <div class="dashboard-grid-2 mt-4">
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">Servicios Más Solicitados</h3>
+              <div class="dash-card-header mb-3">
+                <h3 class="dash-card-title">Servicios Más Solicitados</h3>
+                <span id="badge-services-period" class="badge-tag">Septiembre 2026</span>
+              </div>
               <div id="dashboard-top-services-list" class="top-services-list"></div>
             </div>
 
@@ -396,43 +478,50 @@
             </div>
           </div>
 
-          <div class="pos-grid">
-            <!-- Left: POS Form -->
-            <div class="dashboard-card">
-              <h3 class="dash-card-title mb-2">💳 Registrar Nuevo Cobro</h3>
+          <div class="pos-comfort-layout">
+            <!-- Main POS Checkout Card -->
+            <div class="dashboard-card pos-form-card mb-4">
+              <div class="d-flex justify-between align-center mb-3">
+                <div>
+                  <h3 class="dash-card-title">💳 Registrar Nuevo Cobro</h3>
+                  <p class="text-xs text-muted">Selecciona el servicio rápido o búscalo por nombre. Al finalizar se emitirá el ticket con 1-tap WhatsApp.</p>
+                </div>
+                <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.openNewClientModal()">+ Nueva Clienta</button>
+              </div>
+
               <form id="form-pos-sale">
                 <!-- Client Input Row with Quick Add Action -->
-                <div class="form-group">
+                <div class="form-group mb-3">
                   <div class="d-flex justify-between align-center mb-1">
-                    <label class="form-label mb-0">Clienta *</label>
-                    <button type="button" class="btn-link-action text-xs" onclick="window.lussoCRM.openNewClientModal()">+ Nueva Ficha</button>
+                    <label class="form-label mb-0 font-bold">Clienta *</label>
+                    <span class="text-xs text-muted">Escribe o selecciona</span>
                   </div>
-                  <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input" placeholder="Escribe el nombre de la clienta (o selecciona de la lista)..." required autocomplete="off">
+                  <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input form-input-lg" placeholder="Escribe el nombre de la clienta (ej. Valeria, Katherine, Camila)..." required autocomplete="off">
                   <datalist id="clients-datalist-pos"></datalist>
                   <div id="pos-client-history-preview" style="display:none;" class="mt-2"></div>
                 </div>
 
-                <div class="form-row-2 mb-2">
+                <div class="form-row-2 mb-3">
                   <div class="form-group">
-                    <label class="form-label">Especialista que atendió *</label>
-                    <select id="pos-specialist-select" class="form-select" required>
+                    <label class="form-label font-bold">Especialista que atendió *</label>
+                    <select id="pos-specialist-select" class="form-select form-input-lg" required>
                       <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
                       <option value="Cielo">💅 Cielo (Nail Artist)</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <div class="d-flex justify-between align-center">
-                      <label class="form-label">Fecha de Cobro *</label>
+                      <label class="form-label font-bold">Fecha de Cobro *</label>
                       <span class="text-xs text-muted">⏰ Hora automática</span>
                     </div>
-                    <input type="date" id="pos-date-input" class="form-input" required>
+                    <input type="date" id="pos-date-input" class="form-input form-input-lg" required>
                   </div>
                 </div>
 
                 <!-- Quick Service Category Selector -->
-                <div class="form-group mb-2">
-                  <label class="form-label mb-1">⚡ Selector Rápido de Servicios:</label>
-                  <div class="pos-service-categories">
+                <div class="form-group mb-3">
+                  <label class="form-label font-bold mb-1">⚡ Selector Rápido de Servicios:</label>
+                  <div class="pos-service-categories mb-2">
                     <button type="button" class="pos-cat-btn active" data-cat="all" onclick="window.lussoCRM.filterPOSQuickServices('all')">Todos</button>
                     <button type="button" class="pos-cat-btn" data-cat="manicure" onclick="window.lussoCRM.filterPOSQuickServices('manicure')">💅 Uñas & Manicure</button>
                     <button type="button" class="pos-cat-btn" data-cat="pedicure" onclick="window.lussoCRM.filterPOSQuickServices('pedicure')">🦶 Pedicure Spa</button>
@@ -443,25 +532,25 @@
                     <button type="button" class="pos-cat-btn" data-cat="promos" onclick="window.lussoCRM.filterPOSQuickServices('promos')">⭐ Promos del Mes</button>
                   </div>
                   <!-- Quick service chips grid -->
-                  <div id="pos-quick-services-container" class="pos-quick-chips-grid mt-2">
+                  <div id="pos-quick-services-container" class="pos-quick-chips-grid">
                     <!-- Rendered dynamically -->
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label class="form-label">Servicio Realizado *</label>
-                  <input type="text" id="pos-service-input" list="services-datalist-pos" class="form-input" placeholder="Ej. Manicure Gel UV, Mechas..." required>
+                <div class="form-group mb-3">
+                  <label class="form-label font-bold">Servicio Realizado *</label>
+                  <input type="text" id="pos-service-input" list="services-datalist-pos" class="form-input" placeholder="Toca un botón de arriba o escribe (ej. Manicure Gel UV, Mechas...)" required>
                   <datalist id="services-datalist-pos"></datalist>
                 </div>
 
-                <div class="form-row-2">
+                <div class="form-row-2 mb-3">
                   <div class="form-group">
-                    <label class="form-label">Monto del Servicio (S/) *</label>
-                    <input type="number" step="0.5" id="pos-amount-input" class="form-input font-bold text-primary" placeholder="0.00" required>
+                    <label class="form-label font-bold">Monto del Servicio (S/) *</label>
+                    <input type="number" step="0.5" id="pos-amount-input" class="form-input form-input-lg font-bold text-primary" placeholder="0.00" required>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Método de Pago *</label>
-                    <select id="pos-payment-method" class="form-select" required onchange="window.lussoCRM.handlePOSPaymentChange(this.value)">
+                    <label class="form-label font-bold">Método de Pago *</label>
+                    <select id="pos-payment-method" class="form-select form-input-lg" required onchange="window.lussoCRM.handlePOSPaymentChange(this.value)">
                       <option value="POS">💳 Tarjeta (POS)</option>
                       <option value="Efectivo">💵 Efectivo</option>
                       <option value="Yape">📱 Yape</option>
@@ -473,7 +562,7 @@
 
                 <!-- Quick Payment Method Buttons -->
                 <div class="pos-payment-pills mb-3">
-                  <button type="button" class="pos-pay-btn" data-method="POS" onclick="window.lussoCRM.setPOSPaymentMethod('POS')">💳 Tarjeta POS</button>
+                  <button type="button" class="pos-pay-btn active" data-method="POS" onclick="window.lussoCRM.setPOSPaymentMethod('POS')">💳 Tarjeta POS</button>
                   <button type="button" class="pos-pay-btn" data-method="Efectivo" onclick="window.lussoCRM.setPOSPaymentMethod('Efectivo')">💵 Efectivo</button>
                   <button type="button" class="pos-pay-btn" data-method="Yape" onclick="window.lussoCRM.setPOSPaymentMethod('Yape')">📱 Yape</button>
                   <button type="button" class="pos-pay-btn" data-method="Plin" onclick="window.lussoCRM.setPOSPaymentMethod('Plin')">📱 Plin</button>
@@ -499,13 +588,13 @@
                 </div>
 
                 <!-- Propinas -->
-                <div class="form-group mb-2">
+                <div class="form-group mb-3">
                   <div class="d-flex justify-between align-center">
-                    <label class="form-label mb-1">🎁 Propina de la Clienta (S/):</label>
+                    <label class="form-label font-bold mb-1">🎁 Propina de la Clienta (S/):</label>
                     <span class="text-xs text-muted">100% íntegro para la estilista</span>
                   </div>
                   <div class="d-flex gap-2 align-center">
-                    <input type="number" step="0.5" id="pos-tip-input" class="form-input" style="max-width: 130px;" placeholder="0.00">
+                    <input type="number" step="0.5" id="pos-tip-input" class="form-input" style="max-width: 140px;" placeholder="0.00">
                     <div class="category-pills-row" style="margin: 0; gap: 4px;">
                       <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '0';">S/ 0</button>
                       <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '5';">+S/ 5</button>
@@ -519,11 +608,11 @@
                 <!-- Comisiones por Insumos / Ampollas -->
                 <div class="form-group mb-3">
                   <div class="d-flex justify-between align-center">
-                    <label class="form-label mb-1">📦 Comisión por Venta de Insumo / Ampolla (S/):</label>
+                    <label class="form-label font-bold mb-1">📦 Comisión por Venta de Insumo / Ampolla (S/):</label>
                     <span class="text-xs text-muted">Suma a liquidación de la trabajadora</span>
                   </div>
                   <div class="d-flex gap-2 align-center mb-1">
-                    <input type="number" step="0.5" id="pos-commission-input" class="form-input" style="max-width: 130px;" placeholder="0.00">
+                    <input type="number" step="0.5" id="pos-commission-input" class="form-input" style="max-width: 140px;" placeholder="0.00">
                     <input type="text" id="pos-commission-reason" class="form-input" placeholder="Motivo (ej. Venta de ampolla Semi di Lino, shampoo...)">
                   </div>
                   <div class="category-pills-row mt-1" style="margin: 0; gap: 4px;">
@@ -534,37 +623,36 @@
                   </div>
                 </div>
 
-                <div class="form-row-2">
+                <div class="form-row-2 mb-3">
                   <div class="form-group">
-                    <label class="form-label">Teléfono de la Clienta (WhatsApp)</label>
+                    <label class="form-label font-bold">Teléfono de la Clienta (WhatsApp)</label>
                     <input type="tel" id="pos-phone-input" class="form-input" placeholder="Ej. 971988386">
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Fórmula Técnica / Observaciones</label>
+                    <label class="form-label font-bold">Fórmula Técnica / Observaciones</label>
                     <input type="text" id="pos-notes-input" class="form-input" placeholder="Tono aplicado, esmalte utilizado...">
                   </div>
                 </div>
 
-                <button type="submit" class="btn-primary w-full" style="justify-content: center; height: 52px; font-size: 1rem;">
+                <button type="submit" class="btn-primary w-full" style="justify-content: center; height: 54px; font-size: 1.05rem; font-weight: 800;">
                   <span>💳 Finalizar Venta & Emitir Ticket</span> ✨
                 </button>
               </form>
             </div>
 
-            <!-- Right: Today Sales Feed -->
-            <div class="dashboard-card">
+            <!-- Compact Mini Section: Today Sales Feed -->
+            <div class="dashboard-card pos-today-mini-card">
               <div class="dash-card-header">
-                <div>
-                  <h3 class="dash-card-title">🧾 Cobros Registrados Hoy</h3>
-                  <p class="text-xs text-muted">Lista en tiempo real ordenada del más reciente al más antiguo.</p>
+                <div class="d-flex align-center gap-2">
+                  <h3 class="dash-card-title text-sm">🧾 Cobros Registrados Hoy</h3>
                 </div>
                 <button class="btn-xs btn-outline" onclick="window.lussoCRM.switchTab('sales-history')">
-                  Ver Historial Completo 🔍
+                  🔍 Ver Historial Completo por Fechas
                 </button>
               </div>
 
-              <div class="table-responsive mt-3">
-                <table class="lusso-table">
+              <div class="table-responsive mt-2" style="max-height: 220px; overflow-y: auto;">
+                <table class="lusso-table table-compact">
                   <thead>
                     <tr>
                       <th>Horario</th>
@@ -608,10 +696,16 @@
             </div>
             <div class="filter-selects-group">
               <input type="date" id="sales-history-date" class="filter-select" title="Filtrar por fecha específica">
-              <select id="sales-history-quick-date" class="filter-select">
-                <option value="all">Todo el Historial</option>
+              <select id="sales-history-quick-date" class="filter-select font-bold">
+                <option value="month" selected>✨ Este Mes (Septiembre 2026)</option>
                 <option value="today">Cobros de Hoy</option>
-                <option value="month" selected>Este Mes (2026-09)</option>
+                <option value="2026-08">Agosto 2026 (81 servicios)</option>
+                <option value="2026-07">Julio 2026 (99 servicios)</option>
+                <option value="2026-06">Junio 2026 (76 servicios)</option>
+                <option value="2026-05">Mayo 2026 (87 servicios)</option>
+                <option value="2026-04">Abril 2026 (84 servicios)</option>
+                <option value="2026-03">Marzo 2026 (84 servicios)</option>
+                <option value="all">📊 Todo el Histórico Consolidado 2026 (521 servicios)</option>
               </select>
               <select id="sales-history-specialist" class="filter-select">
                 <option value="all">Todas las Especialistas</option>
@@ -1109,6 +1203,7 @@
               <h1 class="crm-view-title">Respaldo y Seguridad de Datos (🔒 Dueña)</h1>
               <p class="crm-view-desc">Descarga una copia completa de tu base de datos o restaura registros anteriores.</p>
             </div>
+          </div>
           <!-- Supabase Cloud Sync Card -->
           <div class="dashboard-card mb-4" style="border-left: 4px solid var(--emerald); background: #f0fdf4;">
             <div class="dash-card-header mb-2">
@@ -1597,7 +1692,6 @@
           <button type="button" class="keypad-btn keypad-backspace" onclick="window.lussoCRM.handleKeypadBackspace()">⌫</button>
         </div>
 
-        <p class="text-xs text-muted mt-1">PIN maestro autorizado: <strong>2026</strong></p>
         <div id="pin-error-msg" class="text-xs text-red mt-1 hidden font-bold">⚠️ PIN incorrecto. Inténtalo de nuevo.</div>
       </div>
       <div class="modal-footer justify-center" style="gap: 12px;">

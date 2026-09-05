@@ -29,6 +29,21 @@ class LussoStorageService {
       if (!localStorage.getItem(STORAGE_KEYS.CLIENTS)) {
         this.seedInitialData();
       }
+      // Ensure sales are up-to-date with the full 521 consolidated sales (including September)
+      const currentSalesRaw = localStorage.getItem(STORAGE_KEYS.SALES);
+      const seedSales = window.LUSSO_SEED_DATA?.sales || [];
+      if (!currentSalesRaw) {
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(seedSales));
+      } else {
+        try {
+          const currentSales = JSON.parse(currentSalesRaw);
+          if (Array.isArray(currentSales) && currentSales.length < seedSales.length) {
+            localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(seedSales));
+          }
+        } catch (e) {
+          localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(seedSales));
+        }
+      }
       // Check if appointments exist, if not seed them
       if (!localStorage.getItem(STORAGE_KEYS.APPOINTMENTS)) {
         const seed = window.LUSSO_SEED_DATA || {};
@@ -38,19 +53,40 @@ class LussoStorageService {
         const seed = window.LUSSO_SEED_DATA || {};
         localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(seed.monthlyOffers || []));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.STAFF)) {
-        const seed = window.LUSSO_SEED_DATA || {};
-        localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(seed.staff || []));
+      const defaultStaff = [
+        { id: 'st-1', name: 'Kiara', role: 'Estilista Master', baseSalary: 2500, calculationBaseDays: 30, phone: '971988386', active: true },
+        { id: 'st-2', name: 'Cielo', role: 'Nail Artist & Estilista', baseSalary: 2100, calculationBaseDays: 30, phone: '971988386', active: true }
+      ];
+      const currentStaffRaw = localStorage.getItem(STORAGE_KEYS.STAFF);
+      if (!currentStaffRaw) {
+        localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(defaultStaff));
+      } else {
+        try {
+          const currentStaff = JSON.parse(currentStaffRaw);
+          const updatedStaff = currentStaff.map(s => {
+            if (s.name && s.name.toLowerCase() === 'kiara' && Number(s.baseSalary) !== 2500) {
+              return { ...s, baseSalary: 2500, calculationBaseDays: 30 };
+            }
+            if (s.name && s.name.toLowerCase() === 'cielo' && Number(s.baseSalary) !== 2100) {
+              return { ...s, baseSalary: 2100, calculationBaseDays: 30 };
+            }
+            return s;
+          });
+          localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updatedStaff));
+        } catch (err) {
+          localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(defaultStaff));
+        }
       }
       if (!localStorage.getItem(STORAGE_KEYS.ABSENCES)) {
-        const seed = window.LUSSO_SEED_DATA || {};
-        localStorage.setItem(STORAGE_KEYS.ABSENCES, JSON.stringify(seed.absences || []));
+        localStorage.setItem(STORAGE_KEYS.ABSENCES, JSON.stringify([]));
       }
       if (!localStorage.getItem(STORAGE_KEYS.ADMIN_PIN)) {
-        localStorage.setItem(STORAGE_KEYS.ADMIN_PIN, '2026');
+        localStorage.setItem(STORAGE_KEYS.ADMIN_PIN, '0501');
       }
-      if (!localStorage.getItem(STORAGE_KEYS.AUTH_ROLE)) {
-        localStorage.setItem(STORAGE_KEYS.AUTH_ROLE, 'stylist'); // Default to Stylist mode for security
+      // Page must always default to Stylist mode for daily operation and protection
+      localStorage.setItem(STORAGE_KEYS.AUTH_ROLE, 'stylist');
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('lusso_session_role');
       }
     } catch (e) {
       console.warn('LocalStorage fallback mode:', e);
@@ -96,10 +132,10 @@ class LussoStorageService {
     if (!pin) return false;
     const cleanPin = String(pin).trim();
     try {
-      const stored = (localStorage.getItem(STORAGE_KEYS.ADMIN_PIN) || '2026').trim();
-      return cleanPin === stored || cleanPin === '2026' || cleanPin === '1234';
+      const stored = (localStorage.getItem(STORAGE_KEYS.ADMIN_PIN) || '0501').trim();
+      return cleanPin === stored || cleanPin === '0501';
     } catch (e) {
-      return cleanPin === '2026' || cleanPin === '1234';
+      return cleanPin === '0501';
     }
   }
 
@@ -364,12 +400,16 @@ class LussoStorageService {
   }
 
   // --- EXPENSES ---
-  getPettyCashExpenses() {
+  getPettyCashExpenses(monthFilter = null) {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.EXPENSES_CAJA);
-      return data ? JSON.parse(data) : (window.LUSSO_SEED_DATA?.pettyCash || []);
+      let list = data ? JSON.parse(data) : [];
+      if (!Array.isArray(list)) list = [];
+      if (monthFilter === 'all') return list;
+      const targetMonth = monthFilter || '2026-09';
+      return list.filter(e => e.date && e.date.startsWith(targetMonth));
     } catch {
-      return window.LUSSO_SEED_DATA?.pettyCash || [];
+      return [];
     }
   }
 
@@ -657,14 +697,18 @@ class LussoStorageService {
 
   // --- STAFF & SALARY CONFIG ---
   getStaffList() {
+    const fallbackStaff = [
+      { id: 'st-1', name: 'Kiara', role: 'Estilista Master', baseSalary: 2500, calculationBaseDays: 30, phone: '971988386', active: true },
+      { id: 'st-2', name: 'Cielo', role: 'Nail Artist & Estilista', baseSalary: 2100, calculationBaseDays: 30, phone: '971988386', active: true }
+    ];
     try {
-      const seedStaff = window.LUSSO_SEED_DATA?.staff || [];
+      const seedStaff = (window.LUSSO_SEED_DATA?.staff && window.LUSSO_SEED_DATA.staff.length > 0) ? window.LUSSO_SEED_DATA.staff : fallbackStaff;
       const data = localStorage.getItem(STORAGE_KEYS.STAFF);
       if (!data) return seedStaff;
       const parsed = JSON.parse(data);
       return (parsed && parsed.length > 0) ? parsed : seedStaff;
     } catch {
-      return window.LUSSO_SEED_DATA?.staff || [];
+      return fallbackStaff;
     }
   }
 
@@ -954,17 +998,143 @@ class LussoStorageService {
     };
   }
 
-  getDashboardStats() {
-    const sales = this.getSales();
+  getMonthlyHistoricalSummary() {
+    const allSales = this.getSales();
+    const monthNames = {
+      '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
+      '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
+      '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+    };
+
+    const monthMap = {};
+    allSales.forEach(s => {
+      if (!s.date) return;
+      const m = s.date.substring(0, 7);
+      if (!monthMap[m]) {
+        monthMap[m] = {
+          month: m,
+          year: m.split('-')[0],
+          monthNumber: m.split('-')[1],
+          label: `${monthNames[m.split('-')[1]] || m.split('-')[1]} ${m.split('-')[0]}`,
+          salesCount: 0,
+          totalRevenue: 0,
+          kiaraAmount: 0,
+          kiaraCount: 0,
+          cieloAmount: 0,
+          cieloCount: 0,
+          otherAmount: 0,
+          cashAmount: 0,
+          posAmount: 0,
+          yapeAmount: 0,
+          transferAmount: 0,
+          servicesMap: {},
+          tipsTotal: 0,
+          commissionsTotal: 0
+        };
+      }
+      const d = monthMap[m];
+      const amt = Number(s.amount) || 0;
+      d.salesCount++;
+      d.totalRevenue += amt;
+      d.tipsTotal += (Number(s.tip) || 0);
+      d.commissionsTotal += (Number(s.commission) || 0);
+
+      const spec = (s.specialist || '').toLowerCase();
+      if (spec.includes('kiara')) {
+        d.kiaraAmount += amt;
+        d.kiaraCount++;
+      } else if (spec.includes('cielo')) {
+        d.cieloAmount += amt;
+        d.cieloCount++;
+      } else {
+        d.otherAmount += amt;
+      }
+
+      const pm = (s.paymentMethod || 'EFECTIVO').toUpperCase();
+      if (pm === 'EFECTIVO') d.cashAmount += amt;
+      else if (pm === 'POS' || pm === 'TARJETA') d.posAmount += amt;
+      else if (pm === 'TRANSFERENCIA') d.transferAmount += amt;
+      else d.yapeAmount += amt;
+
+      const srv = (s.service || 'Varios').trim();
+      d.servicesMap[srv] = (d.servicesMap[srv] || 0) + 1;
+    });
+
+    const sortedMonths = Object.keys(monthMap).sort();
+    const monthsArray = sortedMonths.map((m, idx) => {
+      const d = monthMap[m];
+      const prevMonthKey = sortedMonths[idx - 1];
+      const prevTotal = prevMonthKey ? monthMap[prevMonthKey].totalRevenue : 0;
+      const growth = prevTotal > 0 ? (((d.totalRevenue - prevTotal) / prevTotal) * 100) : 0;
+
+      const sortedSrv = Object.entries(d.servicesMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(e => `${e[0]} (${e[1]})`);
+
+      const tot = d.totalRevenue || 1;
+      const avgTicket = d.salesCount > 0 ? (d.totalRevenue / d.salesCount) : 0;
+
+      return {
+        month: d.month,
+        label: d.label,
+        salesCount: d.salesCount,
+        totalRevenue: Math.round(d.totalRevenue * 100) / 100,
+        avgTicket: Math.round(avgTicket * 100) / 100,
+        growthPct: Math.round(growth * 10) / 10,
+        payment: {
+          cash: { amount: Math.round(d.cashAmount * 100) / 100, pct: Math.round((d.cashAmount / tot) * 100) },
+          pos: { amount: Math.round(d.posAmount * 100) / 100, pct: Math.round((d.posAmount / tot) * 100) },
+          yape: { amount: Math.round(d.yapeAmount * 100) / 100, pct: Math.round((d.yapeAmount / tot) * 100) },
+          transfer: { amount: Math.round(d.transferAmount * 100) / 100, pct: Math.round((d.transferAmount / tot) * 100) }
+        },
+        specialists: {
+          kiara: { amount: Math.round(d.kiaraAmount * 100) / 100, count: d.kiaraCount, pct: Math.round((d.kiaraAmount / tot) * 100) },
+          cielo: { amount: Math.round(d.cieloAmount * 100) / 100, count: d.cieloCount, pct: Math.round((d.cieloAmount / tot) * 100) }
+        },
+        topServices: sortedSrv,
+        topService: sortedSrv[0] || 'Varios (1)',
+        cashTotal: Math.round(d.cashAmount * 100) / 100,
+        posTotal: Math.round(d.posAmount * 100) / 100,
+        digitalTotal: Math.round(d.yapeAmount * 100) / 100,
+        kiaraRevenue: Math.round(d.kiaraAmount * 100) / 100,
+        cieloRevenue: Math.round(d.cieloAmount * 100) / 100,
+        tipsTotal: Math.round(d.tipsTotal * 100) / 100,
+        commissionsTotal: Math.round(d.commissionsTotal * 100) / 100
+      };
+    }).reverse();
+
+    return monthsArray;
+  }
+
+  getDashboardStats(monthFilter = null) {
+    const allSales = this.getSales();
     const clients = this.getClients();
     const inventory = this.getInventory();
     const pettyCash = this.getPettyCashExpenses();
     const invoices = this.getInvoiceExpenses();
 
-    const totalRevenue = sales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const selectedMonth = monthFilter || '2026-09';
+    let filteredSales = allSales;
+    let periodLabel = 'Todo el Histórico 2026';
+
+    const monthNames = {
+      '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
+      '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
+      '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+    };
+
+    if (selectedMonth && selectedMonth !== 'all') {
+      filteredSales = allSales.filter(s => s.date && s.date.startsWith(selectedMonth));
+      const parts = selectedMonth.split('-');
+      periodLabel = `${monthNames[parts[1]] || parts[1]} ${parts[0]}`;
+    }
+
+    const totalRevenue = filteredSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const grandTotalRevenue2026 = allSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
     
     const clientSalesMap = {};
-    sales.forEach(s => {
+    filteredSales.forEach(s => {
       const name = (s.clientName || '').trim().toLowerCase();
       if (name && name !== 'varios') {
         clientSalesMap[name] = (clientSalesMap[name] || 0) + 1;
@@ -978,26 +1148,33 @@ class LussoStorageService {
       else if (visits > 1) recurrentClientsCount++;
     });
 
-    const totalPettyCash = pettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
-    const totalInvoices = invoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    let filteredPettyCash = pettyCash;
+    let filteredInvoices = invoices;
+    if (selectedMonth && selectedMonth !== 'all') {
+      filteredPettyCash = pettyCash.filter(e => e.date && e.date.startsWith(selectedMonth));
+      filteredInvoices = invoices.filter(e => e.date && e.date.startsWith(selectedMonth));
+    }
+
+    const totalPettyCash = filteredPettyCash.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalInvoices = filteredInvoices.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     const totalExpenses = totalPettyCash + totalInvoices;
 
     const lowStockItems = inventory.filter(i => i.stock <= i.minStock);
 
     const paymentMethods = {};
-    sales.forEach(s => {
+    filteredSales.forEach(s => {
       const pm = (s.paymentMethod || 'EFECTIVO').toUpperCase();
       paymentMethods[pm] = (paymentMethods[pm] || 0) + (Number(s.amount) || 0);
     });
 
     const specialists = {};
-    sales.forEach(s => {
+    filteredSales.forEach(s => {
       const sp = s.specialist || 'Otros';
       specialists[sp] = (specialists[sp] || 0) + (Number(s.amount) || 0);
     });
 
     const topServices = {};
-    sales.forEach(s => {
+    filteredSales.forEach(s => {
       const serv = (s.service || 'Varios').trim();
       topServices[serv] = (topServices[serv] || 0) + 1;
     });
@@ -1011,18 +1188,24 @@ class LussoStorageService {
     const todayAppointments = appointments.filter(a => a.date === today && a.status !== 'cancelled');
     const pendingAppointments = appointments.filter(a => a.status === 'pending');
 
+    const monthlyHistory = this.getMonthlyHistoricalSummary();
+
     return {
-      totalRevenue,
-      totalTransactions: sales.length,
+      selectedMonth,
+      periodLabel,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      grandTotalRevenue2026: Math.round(grandTotalRevenue2026 * 100) / 100,
+      totalTransactions: filteredSales.length,
+      grandTotalTransactions: allSales.length,
       totalClients: clients.length,
       newClientsCount,
       recurrentClientsCount,
       recurrentRate: (newClientsCount + recurrentClientsCount) > 0 
         ? Math.round((recurrentClientsCount / (newClientsCount + recurrentClientsCount)) * 100) 
         : 0,
-      avgTicket: sales.length > 0 ? (totalRevenue / sales.length) : 0,
-      totalExpenses,
-      netProfit: totalRevenue - totalExpenses,
+      avgTicket: filteredSales.length > 0 ? (totalRevenue / filteredSales.length) : 0,
+      totalExpenses: Math.round(totalExpenses * 100) / 100,
+      netProfit: Math.round((totalRevenue - totalExpenses) * 100) / 100,
       lowStockCount: lowStockItems.length,
       lowStockItems,
       paymentMethods,
@@ -1031,7 +1214,8 @@ class LussoStorageService {
       todayAppointments,
       todayAppointmentsCount: todayAppointments.length,
       pendingAppointmentsCount: pendingAppointments.length,
-      totalAppointmentsCount: appointments.length
+      totalAppointmentsCount: appointments.length,
+      monthlyHistory
     };
   }
 
