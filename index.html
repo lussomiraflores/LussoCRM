@@ -19,12 +19,15 @@
       </div>
       <span class="system-badge">Miraflores</span>
     </div>
-
-    <div class="system-location-tag">
-      <span>📍 Calle Berlín 481, Miraflores • 📞 WhatsApp: +51 971 988 386 • ⏰ Lun-Vie 11am-8:30pm | Sáb 10am-8:30pm</span>
-    </div>
     
     <div class="top-actions-group">
+      <!-- Botón Catálogo Virtual para Clientas -->
+      <a href="catalogo.html" target="_blank" class="catalog-client-btn" title="Abrir Catálogo Virtual para mostrar a las clientas en tablet o celular">
+        <span class="catalog-btn-sparkle">✨</span>
+        <span class="catalog-btn-text">Catálogo Clientas</span>
+        <span class="catalog-btn-icon">↗</span>
+      </a>
+
       <!-- Supabase Cloud Sync Indicator -->
       <div id="cloud-sync-status" class="cloud-status-pill online" onclick="window.lussoSupabase && window.lussoSupabase.syncAllToCloud()" title="Sincronización en la nube con Supabase. Clic para sincronizar ahora.">
         <span class="sync-dot"></span>
@@ -61,22 +64,28 @@
           </div>
 
           <ul class="crm-nav-list">
-            <li class="crm-nav-item active" data-tab="dashboard">
-              <span class="crm-nav-icon">📊</span>
-              <span>Dashboard & Métricas</span>
+            <!-- Catálogo Virtual para Clientas -->
+            <li class="crm-nav-item catalog-nav-highlight" onclick="window.open('catalogo.html', '_blank')" title="Abrir Catálogo Virtual para mostrar a las clientas en tablet">
+              <span class="crm-nav-icon">✨</span>
+              <span class="catalog-nav-text">Catálogo Virtual</span>
+              <span class="catalog-nav-badge">VER ↗</span>
+            </li>
+            <li class="crm-nav-item active" data-tab="sales">
+              <span class="crm-nav-icon">💳</span>
+              <span>Registrar Cobro (POS)</span>
+            </li>
+            <li class="crm-nav-item" data-tab="sales-history">
+              <span class="crm-nav-icon">📅</span>
+              <span>Historial de Cobros</span>
             </li>
             <li class="crm-nav-item" data-tab="appointments">
-              <span class="crm-nav-icon">📅</span>
+              <span class="crm-nav-icon">🗓️</span>
               <span>Agenda & Citas</span>
               <span id="crm-sidebar-pending-badge" class="badge-sidebar-notif hidden">0</span>
             </li>
             <li class="crm-nav-item" data-tab="clients">
               <span class="crm-nav-icon">👥</span>
               <span>Directorio de Clientas</span>
-            </li>
-            <li class="crm-nav-item" data-tab="sales">
-              <span class="crm-nav-icon">💳</span>
-              <span>Punto de Venta / POS</span>
             </li>
             <li class="crm-nav-item" data-tab="caja">
               <span class="crm-nav-icon">💵</span>
@@ -86,17 +95,21 @@
               <span class="crm-nav-icon">📦</span>
               <span>Inventario de Insumos</span>
             </li>
-            <li class="crm-nav-item nav-item-locked" data-tab="expenses">
+            <li class="crm-nav-item" data-tab="dashboard">
               <span class="crm-nav-icon">📊</span>
-              <span>Egresos & Balance (Dueña)</span>
+              <span>Dashboard & Métricas</span>
             </li>
             <li class="crm-nav-item nav-item-locked" data-tab="payroll">
-              <span class="crm-nav-icon">👥</span>
-              <span>Asistencia & Pagos</span>
+              <span class="crm-nav-icon">💼</span>
+              <span>Nómina & Sueldos (Dueña)</span>
+            </li>
+            <li class="crm-nav-item nav-item-locked" data-tab="expenses">
+              <span class="crm-nav-icon">📈</span>
+              <span>Egresos & Balance (Dueña)</span>
             </li>
             <li class="crm-nav-item nav-item-locked" data-tab="backup">
               <span class="crm-nav-icon">⚙️</span>
-              <span>Respaldo & Datos</span>
+              <span>Respaldo & Datos (Dueña)</span>
             </li>
           </ul>
         </div>
@@ -115,8 +128,8 @@
       <!-- Main Content Area -->
       <main class="crm-main">
 
-        <!-- TAB 1: DASHBOARD -->
-        <section id="tab-dashboard" class="crm-tab-content active">
+        <!-- TAB: DASHBOARD -->
+        <section id="tab-dashboard" class="crm-tab-content">
           <div class="crm-header-row">
             <div>
               <h1 class="crm-view-title">Resumen Operativo del Salón</h1>
@@ -238,18 +251,26 @@
           <div class="crm-header-row">
             <div>
               <h1 class="crm-view-title">Agenda & Control de Citas</h1>
-              <p class="crm-view-desc">Gestión diaria de reservas, confirmaciones por WhatsApp (+51 971 988 386) y control de atención.</p>
+              <p class="crm-view-desc">Gestión diaria de reservas, recordatorios automáticos por WhatsApp (+51 971 988 386) y Google Calendar.</p>
             </div>
             <div class="header-action-btns">
-              <a href="https://calendar.google.com" target="_blank" class="btn-outline" title="Abrir Google Calendar en otra pestaña">
-                <span>📅 Google Calendar</span>
-              </a>
-              <button class="btn-outline" onclick="window.lussoCRM.handleExportICalendar()" title="Descargar citas en formato iCalendar (.ics) para sincronizar con Google Calendar">
-                <span>📥 Sincronizar (.ics)</span>
+              <button class="btn-outline" onclick="window.lussoCRM && window.lussoCRM.openGoogleCalendarConfigModal()" title="Configurar y vincular API de Google Calendar">
+                <span>⚙️ Vincular Google Calendar</span>
+              </button>
+              <button class="btn-outline text-emerald" onclick="window.lussoCRM && window.lussoCRM.syncGoogleCalendarNow()" title="Sincronizar citas con Google Calendar en vivo">
+                <span>🔄 Sincronizar Citas</span>
               </button>
               <button class="btn-primary" onclick="window.lussoCRM.openManualAppointmentModal()">
                 <span>+ Nueva Cita</span> 📅
               </button>
+            </div>
+          </div>
+
+          <!-- Google Calendar Live Status Indicator -->
+          <div class="gcal-status-row mb-3">
+            <div id="gcal-sync-status-bar" class="gcal-status-bar">
+              <span id="gcal-sync-badge" class="badge-unconfigured"></span>
+              <span id="gcal-sync-status-text" class="text-xs text-muted">Google Calendar listo para vincular</span>
             </div>
           </div>
 
@@ -355,38 +376,75 @@
         </section>
 
 
-        <!-- TAB 4: POS & SALES CHECKOUT -->
-        <section id="tab-sales" class="crm-tab-content">
+        <!-- TAB: POS & SALES CHECKOUT (PRIMARY PAGE) -->
+        <section id="tab-sales" class="crm-tab-content active">
           <div class="crm-header-row">
             <div>
-              <h1 class="crm-view-title">Punto de Venta / Registro de Cobro</h1>
-              <p class="crm-view-desc">Registra el cobro de servicios, propinas en tarjeta y emisión de comprobantes digitales.</p>
+              <h1 class="crm-view-title">💳 Registrar Cobro / Punto de Venta</h1>
+              <p class="crm-view-desc">Registro rápido de servicios cobrados, propinas, comisiones de ampollas y emisión de boletas digitales.</p>
+            </div>
+            <div class="header-action-btns">
+              <a href="catalogo.html" target="_blank" class="btn-catalog-quick" title="Abrir Catálogo Virtual para mostrar a la clienta en tablet">
+                <span>✨ 📖 Ver Catálogo</span>
+              </a>
+              <button class="btn-outline" onclick="window.lussoCRM.openNewClientModal()">
+                <span>+ Nueva Clienta</span> 👥
+              </button>
+              <button class="btn-outline" onclick="window.lussoCRM.switchTab('sales-history')">
+                <span>📅 Historial de Cobros</span> 🔍
+              </button>
             </div>
           </div>
 
           <div class="pos-grid">
             <!-- Left: POS Form -->
             <div class="dashboard-card">
-              <h3 class="dash-card-title mb-3">💳 Registrar Cobro de Servicio</h3>
+              <h3 class="dash-card-title mb-2">💳 Registrar Nuevo Cobro</h3>
               <form id="form-pos-sale">
+                <!-- Client Input Row with Quick Add Action -->
                 <div class="form-group">
-                  <label class="form-label">Clienta *</label>
-                  <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input" placeholder="Nombre de la clienta" required>
+                  <div class="d-flex justify-between align-center mb-1">
+                    <label class="form-label mb-0">Clienta *</label>
+                    <button type="button" class="btn-link-action text-xs" onclick="window.lussoCRM.openNewClientModal()">+ Nueva Ficha</button>
+                  </div>
+                  <input type="text" id="pos-client-input" list="clients-datalist-pos" class="form-input" placeholder="Escribe el nombre de la clienta (o selecciona de la lista)..." required autocomplete="off">
                   <datalist id="clients-datalist-pos"></datalist>
                   <div id="pos-client-history-preview" style="display:none;" class="mt-2"></div>
                 </div>
 
-                <div class="form-row-2">
+                <div class="form-row-2 mb-2">
                   <div class="form-group">
                     <label class="form-label">Especialista que atendió *</label>
                     <select id="pos-specialist-select" class="form-select" required>
                       <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
-                      <option value="Cielo">💅 Cielo (Nail Artist & Esteticista)</option>
+                      <option value="Cielo">💅 Cielo (Nail Artist)</option>
                     </select>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Fecha *</label>
+                    <div class="d-flex justify-between align-center">
+                      <label class="form-label">Fecha de Cobro *</label>
+                      <span class="text-xs text-muted">⏰ Hora automática</span>
+                    </div>
                     <input type="date" id="pos-date-input" class="form-input" required>
+                  </div>
+                </div>
+
+                <!-- Quick Service Category Selector -->
+                <div class="form-group mb-2">
+                  <label class="form-label mb-1">⚡ Selector Rápido de Servicios:</label>
+                  <div class="pos-service-categories">
+                    <button type="button" class="pos-cat-btn active" data-cat="all" onclick="window.lussoCRM.filterPOSQuickServices('all')">Todos</button>
+                    <button type="button" class="pos-cat-btn" data-cat="manicure" onclick="window.lussoCRM.filterPOSQuickServices('manicure')">💅 Uñas & Manicure</button>
+                    <button type="button" class="pos-cat-btn" data-cat="pedicure" onclick="window.lussoCRM.filterPOSQuickServices('pedicure')">🦶 Pedicure Spa</button>
+                    <button type="button" class="pos-cat-btn" data-cat="corte" onclick="window.lussoCRM.filterPOSQuickServices('corte')">💇‍♀️ Cortes</button>
+                    <button type="button" class="pos-cat-btn" data-cat="color" onclick="window.lussoCRM.filterPOSQuickServices('color')">🎨 Color & Mechas</button>
+                    <button type="button" class="pos-cat-btn" data-cat="tratamientos" onclick="window.lussoCRM.filterPOSQuickServices('tratamientos')">💆‍♀️ Tratamientos / Alisado</button>
+                    <button type="button" class="pos-cat-btn" data-cat="tradicionales" onclick="window.lussoCRM.filterPOSQuickServices('tradicionales')">👁️ Pestañas & Cejas</button>
+                    <button type="button" class="pos-cat-btn" data-cat="promos" onclick="window.lussoCRM.filterPOSQuickServices('promos')">⭐ Promos del Mes</button>
+                  </div>
+                  <!-- Quick service chips grid -->
+                  <div id="pos-quick-services-container" class="pos-quick-chips-grid mt-2">
+                    <!-- Rendered dynamically -->
                   </div>
                 </div>
 
@@ -399,11 +457,11 @@
                 <div class="form-row-2">
                   <div class="form-group">
                     <label class="form-label">Monto del Servicio (S/) *</label>
-                    <input type="number" step="0.5" id="pos-amount-input" class="form-input" placeholder="0.00" required>
+                    <input type="number" step="0.5" id="pos-amount-input" class="form-input font-bold text-primary" placeholder="0.00" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Método de Pago *</label>
-                    <select id="pos-payment-method" class="form-select" required>
+                    <select id="pos-payment-method" class="form-select" required onchange="window.lussoCRM.handlePOSPaymentChange(this.value)">
                       <option value="POS">💳 Tarjeta (POS)</option>
                       <option value="Efectivo">💵 Efectivo</option>
                       <option value="Yape">📱 Yape</option>
@@ -413,24 +471,81 @@
                   </div>
                 </div>
 
+                <!-- Quick Payment Method Buttons -->
+                <div class="pos-payment-pills mb-3">
+                  <button type="button" class="pos-pay-btn" data-method="POS" onclick="window.lussoCRM.setPOSPaymentMethod('POS')">💳 Tarjeta POS</button>
+                  <button type="button" class="pos-pay-btn" data-method="Efectivo" onclick="window.lussoCRM.setPOSPaymentMethod('Efectivo')">💵 Efectivo</button>
+                  <button type="button" class="pos-pay-btn" data-method="Yape" onclick="window.lussoCRM.setPOSPaymentMethod('Yape')">📱 Yape</button>
+                  <button type="button" class="pos-pay-btn" data-method="Plin" onclick="window.lussoCRM.setPOSPaymentMethod('Plin')">📱 Plin</button>
+                  <button type="button" class="pos-pay-btn" data-method="Transferencia" onclick="window.lussoCRM.setPOSPaymentMethod('Transferencia')">🏦 Transferencia</button>
+                </div>
+
+                <!-- Cash Change Calculator Box (Visible when Efectivo is selected) -->
+                <div id="pos-cash-calculator-box" class="pos-cash-calc-box mb-3" style="display: none;">
+                  <div class="d-flex justify-between align-center mb-2">
+                    <span class="font-bold text-sm">💵 Calculadora de Vuelto (Efectivo):</span>
+                    <span id="pos-cash-change-display" class="font-bold text-emerald text-base">Vuelto: S/ 0.00</span>
+                  </div>
+                  <div class="d-flex gap-2 align-center">
+                    <span class="text-xs text-muted">Clienta paga con: S/</span>
+                    <input type="number" id="pos-cash-given" class="form-input input-compact" placeholder="Monto entregado" oninput="window.lussoCRM.calculateCashChange()">
+                    <div class="d-flex gap-1">
+                      <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCashGiven('exact')">Exacto</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCashGiven(50)">S/ 50</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCashGiven(100)">S/ 100</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCashGiven(200)">S/ 200</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Propinas -->
+                <div class="form-group mb-2">
+                  <div class="d-flex justify-between align-center">
+                    <label class="form-label mb-1">🎁 Propina de la Clienta (S/):</label>
+                    <span class="text-xs text-muted">100% íntegro para la estilista</span>
+                  </div>
+                  <div class="d-flex gap-2 align-center">
+                    <input type="number" step="0.5" id="pos-tip-input" class="form-input" style="max-width: 130px;" placeholder="0.00">
+                    <div class="category-pills-row" style="margin: 0; gap: 4px;">
+                      <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '0';">S/ 0</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '5';">+S/ 5</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '10';">+S/ 10</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '15';">+S/ 15</button>
+                      <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '20';">+S/ 20</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Comisiones por Insumos / Ampollas -->
+                <div class="form-group mb-3">
+                  <div class="d-flex justify-between align-center">
+                    <label class="form-label mb-1">📦 Comisión por Venta de Insumo / Ampolla (S/):</label>
+                    <span class="text-xs text-muted">Suma a liquidación de la trabajadora</span>
+                  </div>
+                  <div class="d-flex gap-2 align-center mb-1">
+                    <input type="number" step="0.5" id="pos-commission-input" class="form-input" style="max-width: 130px;" placeholder="0.00">
+                    <input type="text" id="pos-commission-reason" class="form-input" placeholder="Motivo (ej. Venta de ampolla Semi di Lino, shampoo...)">
+                  </div>
+                  <div class="category-pills-row mt-1" style="margin: 0; gap: 4px;">
+                    <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCommission(10, 'Venta de ampolla de cabello Semi di Lino')">💊 Ampolla Semi di Lino (+S/ 10)</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCommission(15, 'Venta de shampoo / tratamiento capilar')">🧴 Shampoo/Tratamiento (+S/ 15)</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCommission(20, 'Venta de aceite puro de argán')">🌿 Aceite de Argán (+S/ 20)</button>
+                    <button type="button" class="btn-xs btn-outline" onclick="window.lussoCRM.setQuickCommission(0, '')">Sin comisión</button>
+                  </div>
+                </div>
+
                 <div class="form-row-2">
                   <div class="form-group">
-                    <label class="form-label">Propina en Tarjeta (S/) (Opcional)</label>
-                    <input type="number" step="0.5" id="pos-tip-input" class="form-input" placeholder="0.00">
-                    <span class="text-xs text-muted">100% íntegro para la especialista</span>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Teléfono de la Clienta</label>
+                    <label class="form-label">Teléfono de la Clienta (WhatsApp)</label>
                     <input type="tel" id="pos-phone-input" class="form-input" placeholder="Ej. 971988386">
                   </div>
+                  <div class="form-group">
+                    <label class="form-label">Fórmula Técnica / Observaciones</label>
+                    <input type="text" id="pos-notes-input" class="form-input" placeholder="Tono aplicado, esmalte utilizado...">
+                  </div>
                 </div>
 
-                <div class="form-group">
-                  <label class="form-label">Fórmula Técnica / Observaciones</label>
-                  <textarea id="pos-notes-input" class="form-textarea" rows="2" placeholder="Tono aplicado, esmalte utilizado, etc."></textarea>
-                </div>
-
-                <button type="submit" class="btn-primary w-full" style="justify-content: center;">
+                <button type="submit" class="btn-primary w-full" style="justify-content: center; height: 52px; font-size: 1rem;">
                   <span>💳 Finalizar Venta & Emitir Ticket</span> ✨
                 </button>
               </form>
@@ -440,17 +555,19 @@
             <div class="dashboard-card">
               <div class="dash-card-header">
                 <div>
-                  <h3 class="dash-card-title">🧾 Cobros Registrados</h3>
-                  <p class="text-xs text-muted">Historial de pagos del día.</p>
+                  <h3 class="dash-card-title">🧾 Cobros Registrados Hoy</h3>
+                  <p class="text-xs text-muted">Lista en tiempo real ordenada del más reciente al más antiguo.</p>
                 </div>
-                <input type="date" id="sales-filter-date" class="form-input input-compact">
+                <button class="btn-xs btn-outline" onclick="window.lussoCRM.switchTab('sales-history')">
+                  Ver Historial Completo 🔍
+                </button>
               </div>
 
               <div class="table-responsive mt-3">
                 <table class="lusso-table">
                   <thead>
                     <tr>
-                      <th>Hora / Fecha</th>
+                      <th>Horario</th>
                       <th>Clienta</th>
                       <th>Servicio</th>
                       <th>Especialista</th>
@@ -464,6 +581,95 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB: SALES HISTORY & ADVANCED DATE/TIME SEARCH -->
+        <section id="tab-sales-history" class="crm-tab-content">
+          <div class="crm-header-row">
+            <div>
+              <h1 class="crm-view-title">📅 Historial de Cobros por Fechas & Horario</h1>
+              <p class="crm-view-desc">Buscador cronológico de servicios cobrados. Ordenado por fecha y horario de atención.</p>
+            </div>
+            <div class="header-action-btns">
+              <button class="btn-primary" onclick="window.lussoCRM.switchTab('sales')">
+                <span>+ Nuevo Cobro (POS)</span> 💳
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters Row -->
+          <div class="table-filters-row mb-3">
+            <div class="filter-search-box">
+              <span class="search-icon-pos">🔍</span>
+              <input type="text" id="sales-history-search" class="filter-input" placeholder="Buscar por clienta, servicio, teléfono, fórmula...">
+            </div>
+            <div class="filter-selects-group">
+              <input type="date" id="sales-history-date" class="filter-select" title="Filtrar por fecha específica">
+              <select id="sales-history-quick-date" class="filter-select">
+                <option value="all">Todo el Historial</option>
+                <option value="today">Cobros de Hoy</option>
+                <option value="month" selected>Este Mes (2026-09)</option>
+              </select>
+              <select id="sales-history-specialist" class="filter-select">
+                <option value="all">Todas las Especialistas</option>
+                <option value="Kiara">💇‍♀️ Kiara</option>
+                <option value="Cielo">💅 Cielo</option>
+              </select>
+              <select id="sales-history-payment" class="filter-select">
+                <option value="all">Todos los Medios</option>
+                <option value="EFECTIVO">💵 Efectivo</option>
+                <option value="POS">💳 Tarjeta (POS)</option>
+                <option value="YAPE/PLIN">📱 Yape / Plin</option>
+                <option value="TRANSFERENCIA">🏦 Transferencia</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Mini Summary Bar -->
+          <div class="sales-history-summary-bar mb-3">
+            <div class="history-stat-badge">
+              <span class="text-xs text-muted">Total Servicios:</span>
+              <strong id="hist-stat-count">0</strong>
+            </div>
+            <div class="history-stat-badge">
+              <span class="text-xs text-muted">Monto Cobrado:</span>
+              <strong id="hist-stat-total" class="text-primary">S/ 0.00</strong>
+            </div>
+            <div class="history-stat-badge">
+              <span class="text-xs text-muted">Propinas:</span>
+              <strong id="hist-stat-tips" class="text-emerald">S/ 0.00</strong>
+            </div>
+            <div class="history-stat-badge">
+              <span class="text-xs text-muted">Comisiones Ampollas/Prod:</span>
+              <strong id="hist-stat-commissions" class="text-amber">S/ 0.00</strong>
+            </div>
+          </div>
+
+          <!-- History Table -->
+          <div class="dashboard-card">
+            <div class="table-responsive">
+              <table class="lusso-table">
+                <thead>
+                  <tr>
+                    <th>Fecha & Horario</th>
+                    <th>Clienta</th>
+                    <th>Servicio Realizado</th>
+                    <th>Especialista</th>
+                    <th>Monto</th>
+                    <th>Comisión Extra</th>
+                    <th>Propina</th>
+                    <th>Medio de Pago</th>
+                    <th>Fórmula / Notas</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="sales-history-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -1427,7 +1633,9 @@
             <div class="receipt-divider">--------------------------------</div>
             <div class="receipt-row"><span>Servicio:</span> <span id="receipt-service">-</span></div>
             <div class="receipt-row"><span>Importe:</span> <strong id="receipt-amount">S/ 0.00</strong></div>
-            <div class="receipt-row" id="receipt-tip-row"><span>Propina Tarjeta:</span> <span id="receipt-tip">S/ 0.00</span></div>
+            <div class="receipt-row" id="receipt-tip-row"><span>Propina:</span> <span id="receipt-tip">S/ 0.00</span></div>
+            <div class="receipt-row" id="receipt-comm-row"><span>Comisión / Insumo:</span> <span id="receipt-comm">S/ 0.00</span></div>
+            <div class="receipt-row" id="receipt-change-row"><span>Vuelto Entregado:</span> <span id="receipt-change">S/ 0.00</span></div>
             <div class="receipt-row"><span>Medio de Pago:</span> <span id="receipt-payment">-</span></div>
             <div class="receipt-divider">--------------------------------</div>
             <div class="receipt-row receipt-total"><span>TOTAL COBRADO:</span> <strong id="receipt-total">S/ 0.00</strong></div>
@@ -1438,10 +1646,10 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer justify-center">
-        <button type="button" class="btn-outline btn-modal-cancel">Cerrar</button>
-        <button type="button" id="btn-share-receipt-wa" class="btn-primary">
-          <span>💬 Enviar Comprobante por WhatsApp</span>
+      <div class="modal-footer justify-center" style="gap: 10px;">
+        <button type="button" class="btn-outline btn-modal-cancel">✨ Siguiente Cobro</button>
+        <button type="button" id="btn-share-receipt-wa" class="btn-primary" onclick="window.lussoCRM && window.lussoCRM.sendCurrentSaleWhatsAppReceipt()">
+          <span>💬 Enviar WhatsApp a la Clienta</span>
         </button>
       </div>
     </div>
@@ -1475,12 +1683,64 @@
   </div>
 
 
+  <!-- ================= MODAL: GOOGLE CALENDAR API CONFIGURATION ================= -->
+  <div id="modal-gcalendar-config" class="lusso-modal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📅 Vincular Google Calendar API (Gratis)</h3>
+        <button class="modal-close-btn">✕</button>
+      </div>
+      <form id="form-gcalendar-config" onsubmit="event.preventDefault(); window.lussoCRM && window.lussoCRM.saveGoogleCalendarConfig();">
+        <div class="modal-body">
+          <div class="p-3 mb-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); font-size: 0.85rem; color: #166534;">
+            ✨ Sincroniza tus citas del salón automáticamente con Google Calendar en tu tablet o celular sin costos mensuales.
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-bold">📧 ID del Calendario (Correo de Gmail del Salón) *</label>
+            <input type="text" id="gcal-input-calendar-id" class="form-input" placeholder="ej. lussosalon@gmail.com" required>
+            <span class="text-xs text-muted">Es el correo donde tienes el calendario de LUSSO Beauty Salón.</span>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-bold">🔑 Google API Key (Clave de API) *</label>
+            <input type="password" id="gcal-input-api-key" class="form-input" placeholder="AIzaSy...">
+            <span class="text-xs text-muted">Generada gratis en Google Cloud Console > Credenciales.</span>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-bold">⚙️ Sincronización</label>
+            <label class="d-flex align-center gap-2 cursor-pointer mt-1" style="font-size: 0.88rem;">
+              <input type="checkbox" id="gcal-input-auto-sync" checked>
+              <span>Descargar citas de Google Calendar automáticamente al abrir la Agenda</span>
+            </label>
+          </div>
+
+          <div id="gcal-test-result" class="text-sm font-bold mt-2" style="display:none; padding: 8px 12px; border-radius: 6px;"></div>
+        </div>
+        <div class="modal-footer justify-between">
+          <button type="button" class="btn-outline btn-modal-cancel">Cerrar</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn-outline" onclick="window.lussoCRM && window.lussoCRM.testGoogleCalendarConnection()">
+              <span>🔍 Probar Conexión</span>
+            </button>
+            <button type="submit" class="btn-primary">
+              <span>💾 Guardar y Conectar</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Supabase CDN Client & Cloud Sync Module -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase.js"></script>
+  <script src="./js/gcalendar.js"></script>
   <script src="./js/data.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/crm.js"></script>

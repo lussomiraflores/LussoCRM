@@ -20,12 +20,16 @@ CREATE TABLE IF NOT EXISTS clients (
 CREATE TABLE IF NOT EXISTS sales (
     id TEXT PRIMARY KEY,
     date DATE NOT NULL,
+    time TEXT DEFAULT '12:00',
     client_name TEXT NOT NULL,
     specialist TEXT NOT NULL,
     service TEXT NOT NULL,
     supplies TEXT,
     drinks TEXT,
     amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    tip NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    commission NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    commission_reason TEXT,
     payment_method TEXT NOT NULL,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())

@@ -6,9 +6,14 @@
 
 class LussoCRM {
   constructor() {
-    this.currentTab = 'dashboard';
+    this.currentTab = 'sales'; // Default landing view: POS & Daily Sales Checkout
     this.selectedClient = null;
-    this.salesFilterDate = 'all';
+    this.salesFilterDate = 'today';
+    this.salesHistorySearchQuery = '';
+    this.salesHistoryFilterDate = '';
+    this.salesHistoryQuickDate = 'month';
+    this.salesHistoryFilterSpec = 'all';
+    this.salesHistoryFilterPayment = 'all';
     this.clientFilterType = 'all';
     this.inventoryFilterCategory = 'all';
     this.appointmentFilterSpec = 'all';
@@ -22,10 +27,12 @@ class LussoCRM {
   init() {
     try { this.bindEvents(); } catch (e) { console.error('Error in bindEvents:', e); }
     try { this.updateRoleUI(); } catch (e) { console.error('Error in updateRoleUI:', e); }
+    try { this.renderPOSQuickServices('all'); } catch (e) { console.error('Error in renderPOSQuickServices:', e); }
+    try { this.renderSales(); } catch (e) { console.error('Error in renderSales:', e); }
+    try { this.renderSalesHistory(); } catch (e) { console.error('Error in renderSalesHistory:', e); }
     try { this.renderDashboard(); } catch (e) { console.error('Error in renderDashboard:', e); }
     try { this.renderAppointments(); } catch (e) { console.error('Error in renderAppointments:', e); }
     try { this.renderClients(); } catch (e) { console.error('Error in renderClients:', e); }
-    try { this.renderSales(); } catch (e) { console.error('Error in renderSales:', e); }
     try { this.renderInventory(); } catch (e) { console.error('Error in renderInventory:', e); }
     try { this.renderCaja(); } catch (e) { console.error('Error in renderCaja:', e); }
     try { this.renderExpenses(); } catch (e) { console.error('Error in renderExpenses:', e); }
@@ -176,12 +183,58 @@ class LussoCRM {
       saleClientInput.addEventListener('change', (e) => this.handlePOSClientInputChange(e.target.value));
     }
 
-    // Sales Filters
+    // Sales Filters (POS Today)
     const salesDateFilter = document.getElementById('sales-filter-date') || document.getElementById('sales-date-filter');
     if (salesDateFilter) {
       salesDateFilter.addEventListener('change', (e) => {
         this.salesFilterDate = e.target.value;
         this.renderSales();
+      });
+    }
+
+    // Sales History Filters (General Search & Date/Time)
+    const salesHistorySearch = document.getElementById('sales-history-search');
+    if (salesHistorySearch) {
+      salesHistorySearch.addEventListener('input', (e) => {
+        this.salesHistorySearchQuery = e.target.value.trim();
+        this.renderSalesHistory();
+      });
+    }
+
+    const salesHistoryDate = document.getElementById('sales-history-date');
+    if (salesHistoryDate) {
+      salesHistoryDate.addEventListener('change', (e) => {
+        this.salesHistoryFilterDate = e.target.value;
+        const quickSelect = document.getElementById('sales-history-quick-date');
+        if (quickSelect && e.target.value) quickSelect.value = 'all';
+        this.renderSalesHistory();
+      });
+    }
+
+    const salesHistoryQuickDate = document.getElementById('sales-history-quick-date');
+    if (salesHistoryQuickDate) {
+      salesHistoryQuickDate.addEventListener('change', (e) => {
+        this.salesHistoryQuickDate = e.target.value;
+        const dateEl = document.getElementById('sales-history-date');
+        if (dateEl && e.target.value !== 'all') dateEl.value = '';
+        this.salesHistoryFilterDate = '';
+        this.renderSalesHistory();
+      });
+    }
+
+    const salesHistorySpec = document.getElementById('sales-history-specialist');
+    if (salesHistorySpec) {
+      salesHistorySpec.addEventListener('change', (e) => {
+        this.salesHistoryFilterSpec = e.target.value;
+        this.renderSalesHistory();
+      });
+    }
+
+    const salesHistoryPayment = document.getElementById('sales-history-payment');
+    if (salesHistoryPayment) {
+      salesHistoryPayment.addEventListener('change', (e) => {
+        this.salesHistoryFilterPayment = e.target.value;
+        this.renderSalesHistory();
       });
     }
 
@@ -478,7 +531,11 @@ class LussoCRM {
     if (tab === 'dashboard') this.renderDashboard();
     if (tab === 'appointments') this.renderAppointments();
     if (tab === 'clients') this.renderClients();
-    if (tab === 'sales') this.renderSales();
+    if (tab === 'sales') {
+      this.renderSales();
+      this.renderPOSQuickServices('all');
+    }
+    if (tab === 'sales-history') this.renderSalesHistory();
     if (tab === 'inventory') this.renderInventory();
     if (tab === 'caja') this.renderCaja();
     if (tab === 'expenses') this.renderExpenses();
@@ -487,10 +544,11 @@ class LussoCRM {
 
   refreshAll() {
     this.updateRoleUI();
+    this.renderSales();
+    this.renderSalesHistory();
     this.renderDashboard();
     this.renderAppointments();
     this.renderClients();
-    this.renderSales();
     this.renderInventory();
     this.renderCaja();
     this.renderExpenses();
@@ -1257,6 +1315,95 @@ class LussoCRM {
     this.showToast('Archivo .ics descargado. Puedes importarlo directamente en Google Calendar 📅', 'success');
   }
 
+  // ================= GOOGLE CALENDAR API INTEGRATION =================
+  openGoogleCalendarConfigModal() {
+    const modal = document.getElementById('modal-gcalendar-config');
+    if (!modal) return;
+
+    if (window.lussoGCalendar) {
+      const config = window.lussoGCalendar.config;
+      const calInput = document.getElementById('gcal-input-calendar-id');
+      const apiInput = document.getElementById('gcal-input-api-key');
+      const autoInput = document.getElementById('gcal-input-auto-sync');
+      const resultEl = document.getElementById('gcal-test-result');
+
+      if (calInput) calInput.value = config.calendarId || '';
+      if (apiInput) apiInput.value = config.apiKey || '';
+      if (autoInput) autoInput.checked = config.autoSync !== false;
+      if (resultEl) resultEl.style.display = 'none';
+    }
+
+    modal.classList.add('open');
+  }
+
+  async testGoogleCalendarConnection() {
+    const calId = document.getElementById('gcal-input-calendar-id')?.value.trim();
+    const apiKey = document.getElementById('gcal-input-api-key')?.value.trim();
+    const resultEl = document.getElementById('gcal-test-result');
+    if (!resultEl) return;
+
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#eff6ff';
+    resultEl.style.color = '#1e40af';
+    resultEl.textContent = '🔄 Probando conexión con Google Calendar...';
+
+    if (window.lussoGCalendar) {
+      const res = await window.lussoGCalendar.testConnection(apiKey, calId);
+      if (res.success) {
+        resultEl.style.background = '#f0fdf4';
+        resultEl.style.color = '#166534';
+        resultEl.textContent = `✅ ${res.message}`;
+        this.showToast('Conexión con Google Calendar verificada con éxito 📅', 'success');
+      } else {
+        resultEl.style.background = '#fef2f2';
+        resultEl.style.color = '#991b1b';
+        resultEl.textContent = `❌ ${res.message}`;
+      }
+    }
+  }
+
+  async saveGoogleCalendarConfig() {
+    const calId = document.getElementById('gcal-input-calendar-id')?.value.trim();
+    const apiKey = document.getElementById('gcal-input-api-key')?.value.trim();
+    const autoSync = document.getElementById('gcal-input-auto-sync')?.checked;
+    const modal = document.getElementById('modal-gcalendar-config');
+
+    if (window.lussoGCalendar) {
+      window.lussoGCalendar.saveConfig({
+        calendarId: calId,
+        apiKey: apiKey,
+        autoSync: autoSync
+      });
+
+      if (modal) modal.classList.remove('open');
+      this.showToast('Configuración de Google Calendar guardada con éxito.', 'success');
+
+      if (apiKey && calId) {
+        this.syncGoogleCalendarNow();
+      }
+    }
+  }
+
+  async syncGoogleCalendarNow() {
+    if (!window.lussoGCalendar) return;
+
+    if (!window.lussoGCalendar.isConfigured()) {
+      this.openGoogleCalendarConfigModal();
+      this.showToast('Por favor ingresa tu API Key y correo de Gmail para conectar Google Calendar.', 'info');
+      return;
+    }
+
+    this.showToast('Sincronizando citas con Google Calendar... 🔄', 'info');
+    const res = await window.lussoGCalendar.syncFromGoogle();
+
+    if (res.success) {
+      this.renderAppointments();
+      this.showToast(res.message, 'success');
+    } else {
+      this.showToast(res.message, 'warning');
+    }
+  }
+
   handleConvertAppointmentToSale(id) {
     const apt = window.lussoDB.getAppointmentById(id);
     if (!apt) return;
@@ -1648,19 +1795,16 @@ class LussoCRM {
     if (!tableBody) return;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const currentMonth = todayStr.substring(0, 7);
 
-    let filtered = [...sales];
-    if (this.salesFilterDate === 'today') {
-      filtered = filtered.filter(s => s.date === todayStr);
-    } else if (this.salesFilterDate === 'month') {
-      filtered = filtered.filter(s => s.date && s.date.startsWith(currentMonth));
-    }
+    // POS feed shows today's sales
+    let filtered = [...sales].filter(s => s.date === todayStr);
 
     // Sort strictly from most recent to oldest
     filtered.sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+      const dtA = `${a.date || '2026-01-01'}T${a.time || '00:00'}:00`;
+      const dtB = `${b.date || '2026-01-01'}T${b.time || '00:00'}:00`;
+      const timeA = new Date(dtA).getTime() || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = new Date(dtB).getTime() || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       if (timeB !== timeA) return timeB - timeA;
       return String(b.id || '').localeCompare(String(a.id || ''));
     });
@@ -1684,7 +1828,7 @@ class LussoCRM {
       tableBody.innerHTML = `
         <tr>
           <td colspan="7" class="text-center py-6 text-muted">
-            No hay registros de ventas para el período seleccionado.
+            No hay servicios cobrados hoy todavía.
           </td>
         </tr>
       `;
@@ -1692,19 +1836,30 @@ class LussoCRM {
     }
 
     let html = '';
-    filtered.slice(0, 80).forEach(sale => {
+    filtered.forEach(sale => {
       const pmClass = (sale.paymentMethod || 'POS').toLowerCase().replace('/', '-');
+      const timeStr = sale.time ? `⏰ ${sale.time}` : '⏰ Hoy';
+      const commBadge = Number(sale.commission) > 0 ? `<span class="badge-pill-amber block text-xs" title="${sale.commissionReason || 'Comisión'}">+S/ ${Number(sale.commission).toFixed(2)} com.</span>` : '';
+      const tipBadge = Number(sale.tip) > 0 ? `<span class="badge-pill-green block text-xs">+S/ ${Number(sale.tip).toFixed(2)} prop.</span>` : '';
+
       html += `
         <tr>
-          <td class="text-sm">📅 ${sale.date}</td>
+          <td class="text-xs">
+            <div class="font-bold">${timeStr}</div>
+            <div class="text-muted">${sale.date}</div>
+          </td>
           <td>
             <span class="font-bold text-dark clickable" onclick="window.lussoCRM.openClientProfile('${encodeURIComponent(sale.clientName)}')">
               ${sale.clientName}
             </span>
           </td>
-          <td><span class="font-medium">${sale.service}</span></td>
+          <td>
+            <span class="font-medium">${sale.service}</span>
+            ${commBadge}
+            ${tipBadge}
+          </td>
           <td><span class="badge-specialist">${sale.specialist}</span></td>
-          <td><span class="font-bold text-primary">S/ ${Number(sale.amount).toFixed(2)}</span></td>
+          <td><span class="font-bold text-primary">${isAdmin ? `S/ ${Number(sale.amount).toFixed(2)}` : 'S/ ••••••'}</span></td>
           <td><span class="badge-payment badge-${pmClass}">${sale.paymentMethod}</span></td>
           <td>
             <button class="btn-icon text-red" title="Eliminar registro" onclick="window.lussoCRM.handleDeleteSale('${sale.id}')">🗑️</button>
@@ -1716,6 +1871,249 @@ class LussoCRM {
     tableBody.innerHTML = html;
   }
 
+  // ================= POS QUICK SERVICES & INTERACTION =================
+  renderPOSQuickServices(category = 'all') {
+    const container = document.getElementById('pos-quick-services-container');
+    if (!container) return;
+
+    const catalog = window.lussoDB.getServicesCatalog() || [];
+    const offers = window.lussoDB.getMonthlyOffers() || [];
+
+    let items = [];
+    if (category === 'promos') {
+      items = offers.map(o => ({
+        name: o.title || o.name,
+        price: o.offerPrice || o.price,
+        specialist: o.specialist || 'Kiara / Cielo',
+        category: 'Promo',
+        isPromo: true
+      }));
+    } else {
+      items = catalog.filter(s => {
+        if (category === 'all') return true;
+        const cat = (s.category || '').toLowerCase();
+        if (category === 'manicure') return cat.includes('manicure') || cat.includes('uñas') || cat.includes('acrílico') || cat.includes('gel');
+        if (category === 'pedicure') return cat.includes('pedicure') || cat.includes('pies');
+        if (category === 'corte') return cat.includes('corte') || cat.includes('peinado') || cat.includes('cepillado') || cat.includes('lavado');
+        if (category === 'color') return cat.includes('color') || cat.includes('mechas') || cat.includes('balayage') || cat.includes('tinte');
+        if (category === 'tratamientos') return cat.includes('tratamiento') || cat.includes('alisado') || cat.includes('botox') || cat.includes('keratina') || cat.includes('cirugía');
+        if (category === 'tradicionales') return cat.includes('tradicional') || cat.includes('pestaña') || cat.includes('ceja') || cat.includes('depilación');
+        return true;
+      });
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = `<div class="text-xs text-muted py-2">No hay servicios en esta categoría.</div>`;
+      return;
+    }
+
+    container.innerHTML = items.map(s => {
+      const safeName = (s.name || '').replace(/'/g, "\\'");
+      const spec = s.specialist || (s.category === 'Pedicure' ? 'Cielo' : 'Kiara');
+      const promoBadge = s.isPromo ? '⭐ ' : '';
+      return `
+        <button type="button" class="pos-quick-chip ${s.isPromo ? 'chip-promo' : ''}" onclick="window.lussoCRM.selectPOSQuickService('${safeName}', ${s.price}, '${spec}')">
+          <span class="chip-name">${promoBadge}${s.name}</span>
+          <span class="chip-price">S/ ${Number(s.price).toFixed(0)}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  filterPOSQuickServices(category) {
+    document.querySelectorAll('.pos-cat-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-cat') === category);
+    });
+    this.renderPOSQuickServices(category);
+  }
+
+  selectPOSQuickService(name, price, specialist) {
+    const srvInput = document.getElementById('pos-service-input');
+    const amtInput = document.getElementById('pos-amount-input');
+    const specSelect = document.getElementById('pos-specialist-select');
+
+    if (srvInput) srvInput.value = name;
+    if (amtInput) {
+      amtInput.value = price;
+      this.calculateCashChange();
+    }
+    if (specSelect && specialist) {
+      if (specialist.includes('Kiara')) specSelect.value = 'Kiara';
+      else if (specialist.includes('Cielo')) specSelect.value = 'Cielo';
+    }
+
+    this.showToast(`✨ Servicio seleccionado: ${name} (S/ ${price})`, 'info');
+  }
+
+  setPOSPaymentMethod(method) {
+    const paySelect = document.getElementById('pos-payment-method');
+    if (paySelect) {
+      paySelect.value = method;
+    }
+    this.handlePOSPaymentChange(method);
+  }
+
+  handlePOSPaymentChange(method) {
+    document.querySelectorAll('.pos-pay-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-method') === method);
+    });
+
+    const cashBox = document.getElementById('pos-cash-calculator-box');
+    if (cashBox) {
+      if (method === 'Efectivo') {
+        cashBox.style.display = 'block';
+        this.calculateCashChange();
+      } else {
+        cashBox.style.display = 'none';
+      }
+    }
+  }
+
+  calculateCashChange() {
+    const amtInput = document.getElementById('pos-amount-input');
+    const cashInput = document.getElementById('pos-cash-given');
+    const displayEl = document.getElementById('pos-cash-change-display');
+    if (!amtInput || !displayEl) return;
+
+    const total = parseFloat(amtInput.value) || 0;
+    const given = parseFloat(cashInput?.value) || 0;
+
+    if (given === 0) {
+      displayEl.textContent = 'Vuelto: S/ 0.00';
+      displayEl.className = 'font-bold text-muted text-base';
+    } else if (given >= total) {
+      const change = given - total;
+      displayEl.textContent = `Vuelto: S/ ${change.toFixed(2)}`;
+      displayEl.className = 'font-bold text-emerald text-base';
+    } else {
+      const faltan = total - given;
+      displayEl.textContent = `Faltan: S/ ${faltan.toFixed(2)}`;
+      displayEl.className = 'font-bold text-red text-base';
+    }
+  }
+
+  setQuickCashGiven(val) {
+    const cashInput = document.getElementById('pos-cash-given');
+    const amtInput = document.getElementById('pos-amount-input');
+    if (!cashInput) return;
+
+    if (val === 'exact') {
+      cashInput.value = amtInput?.value || '0';
+    } else {
+      cashInput.value = val;
+    }
+    this.calculateCashChange();
+  }
+
+  setQuickTip(val) {
+    const tipInput = document.getElementById('pos-tip-input');
+    if (tipInput) {
+      tipInput.value = val;
+    }
+  }
+
+  setQuickCommission(amt, reason) {
+    const commInput = document.getElementById('pos-commission-input');
+    const reasonInput = document.getElementById('pos-commission-reason');
+    if (commInput) commInput.value = amt > 0 ? amt : '';
+    if (reasonInput) reasonInput.value = reason;
+  }
+
+  openSaleReceiptModal(sale) {
+    this.currentSaleReceipt = sale;
+    const modal = document.getElementById('modal-ticket-receipt');
+    if (!modal) return;
+
+    const ticketIdEl = document.getElementById('receipt-ticket-id');
+    const dateEl = document.getElementById('receipt-date');
+    const clientEl = document.getElementById('receipt-client');
+    const specEl = document.getElementById('receipt-specialist');
+    const serviceEl = document.getElementById('receipt-service');
+    const amountEl = document.getElementById('receipt-amount');
+    const tipEl = document.getElementById('receipt-tip');
+    const tipRow = document.getElementById('receipt-tip-row');
+    const commEl = document.getElementById('receipt-comm');
+    const commRow = document.getElementById('receipt-comm-row');
+    const changeEl = document.getElementById('receipt-change');
+    const changeRow = document.getElementById('receipt-change-row');
+    const paymentEl = document.getElementById('receipt-payment');
+    const totalEl = document.getElementById('receipt-total');
+
+    const shortId = sale.id ? `#T-${String(sale.id).slice(-4)}` : '#T-0001';
+    if (ticketIdEl) ticketIdEl.textContent = shortId;
+    if (dateEl) dateEl.textContent = `${sale.date} ${sale.time ? '• ' + sale.time : ''}`;
+    if (clientEl) clientEl.textContent = sale.clientName;
+    if (specEl) specEl.textContent = sale.specialist;
+    if (serviceEl) serviceEl.textContent = sale.service;
+    if (amountEl) amountEl.textContent = `S/ ${Number(sale.amount).toFixed(2)}`;
+
+    if (tipEl && tipRow) {
+      const tipVal = Number(sale.tip) || 0;
+      tipEl.textContent = `S/ ${tipVal.toFixed(2)}`;
+      tipRow.style.display = tipVal > 0 ? 'flex' : 'none';
+    }
+
+    if (commEl && commRow) {
+      const commVal = Number(sale.commission) || 0;
+      commEl.textContent = `S/ ${commVal.toFixed(2)} ${sale.commissionReason ? '(' + sale.commissionReason + ')' : ''}`;
+      commRow.style.display = commVal > 0 ? 'flex' : 'none';
+    }
+
+    if (changeEl && changeRow) {
+      const cashGiven = sale.cashGiven ? Number(sale.cashGiven) : 0;
+      if (sale.paymentMethod === 'EFECTIVO' && cashGiven > sale.amount) {
+        changeEl.textContent = `S/ ${(cashGiven - sale.amount).toFixed(2)} (Paga con S/ ${cashGiven.toFixed(2)})`;
+        changeRow.style.display = 'flex';
+      } else {
+        changeRow.style.display = 'none';
+      }
+    }
+
+    if (paymentEl) paymentEl.textContent = sale.paymentMethod;
+    const grandTotal = Number(sale.amount) + (Number(sale.tip) || 0);
+    if (totalEl) totalEl.textContent = `S/ ${grandTotal.toFixed(2)}`;
+
+    modal.classList.add('open');
+  }
+
+  sendCurrentSaleWhatsAppReceipt() {
+    const sale = this.currentSaleReceipt;
+    if (!sale) return;
+
+    const client = window.lussoDB.getClientByName(sale.clientName);
+    let phone = (sale.phone || client?.phone || '').replace(/\D/g, '');
+    if (!phone) {
+      phone = prompt('Ingresa el número de WhatsApp de la clienta (9 dígitos):', '');
+      if (!phone) return;
+      phone = phone.replace(/\D/g, '');
+    }
+
+    if (phone.length === 9 && !phone.startsWith('51')) {
+      phone = '51' + phone;
+    }
+
+    const total = Number(sale.amount) + (Number(sale.tip) || 0);
+    const msg = [
+      `✨ ¡Hola ${sale.clientName}! Gracias por visitar *LUSSO BEAUTY SALÓN* 💖`,
+      `Aquí tienes el detalle de tu atención de hoy:`,
+      ``,
+      `🧾 *COMPROBANTE DE ATENCIÓN*`,
+      `📅 Fecha: ${sale.date} ${sale.time ? '⏰ ' + sale.time : ''}`,
+      `💅 Servicio: *${sale.service}*`,
+      `👩‍🎨 Especialista: ${sale.specialist}`,
+      `💳 Método de Pago: ${sale.paymentMethod}`,
+      `💰 Total: *S/ ${total.toFixed(2)}*`,
+      sale.notes ? `📝 Notas: ${sale.notes}` : '',
+      ``,
+      `¡Fue un placer atenderte! Recuerda que puedes agendar tu próximo retoque con nosotros al WhatsApp 🌟`,
+      `📍 Calle Berlín 481, Miraflores`
+    ].filter(Boolean).join('\n');
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+    this.showToast('Abriendo WhatsApp para enviar el comprobante 💬', 'success');
+  }
+
   handleCreateSale() {
     const clientInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
     const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
@@ -1724,8 +2122,12 @@ class LussoCRM {
     const paySelect = document.getElementById('pos-payment-method') || document.getElementById('sale-payment-select');
     const notesInput = document.getElementById('pos-notes-input') || document.getElementById('sale-notes-input');
     const dateInput = document.getElementById('pos-date-input') || document.getElementById('sale-date-input');
+    const timeInput = document.getElementById('pos-time-input');
     const tipInput = document.getElementById('pos-tip-input');
+    const commissionInput = document.getElementById('pos-commission-input');
+    const commissionReasonInput = document.getElementById('pos-commission-reason');
     const phoneInput = document.getElementById('pos-phone-input');
+    const cashGivenInput = document.getElementById('pos-cash-given');
 
     const clientName = clientInput?.value.trim() || '';
     const specialist = specSelect?.value || 'Kiara';
@@ -1733,9 +2135,14 @@ class LussoCRM {
     const amount = parseFloat(amtInput?.value) || 0;
     const paymentMethod = paySelect?.value || 'POS';
     const notes = notesInput?.value.trim() || '';
-    const date = dateInput?.value || new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const date = dateInput?.value || now.toISOString().split('T')[0];
+    const time = now.toTimeString().substring(0, 5);
     const tip = parseFloat(tipInput?.value) || 0;
+    const commission = parseFloat(commissionInput?.value) || 0;
+    const commissionReason = commissionReasonInput?.value.trim() || '';
     const phone = phoneInput?.value.trim() || '';
+    const cashGiven = parseFloat(cashGivenInput?.value) || 0;
 
     if (!clientName) {
       this.showToast('Por favor escribe o selecciona una clienta.', 'warning');
@@ -1766,38 +2173,192 @@ class LussoCRM {
       }
     }
 
-    window.lussoDB.addSale({
+    const createdSale = window.lussoDB.addSale({
       date,
+      time,
       clientName,
       specialist,
       service,
       amount,
+      tip,
+      commission,
+      commissionReason,
       paymentMethod,
-      notes: tip > 0 ? `${notes ? notes + ' | ' : ''}Propina: S/ ${tip.toFixed(2)}` : notes
+      notes: notes,
+      clientPhone: phone
     });
 
+    // Clear form inputs
     if (clientInput) clientInput.value = '';
     if (srvInput) srvInput.value = '';
     if (amtInput) amtInput.value = '';
     if (notesInput) notesInput.value = '';
     if (tipInput) tipInput.value = '';
+    if (commissionInput) commissionInput.value = '';
+    if (commissionReasonInput) commissionReasonInput.value = '';
     if (phoneInput) phoneInput.value = '';
+    if (cashGivenInput) cashGivenInput.value = '';
+    if (dateInput) dateInput.value = now.toISOString().split('T')[0];
     const previewBox = document.getElementById('pos-client-history-preview');
     if (previewBox) previewBox.style.display = 'none';
 
     this.renderSales();
+    this.renderSalesHistory();
     this.renderDashboard();
     this.renderClients();
+    this.renderPayroll();
     this.showToast('¡Servicio y cobro registrados con éxito! ✨', 'success');
+
+    // Open digital ticket confirmation modal with 1-tap WhatsApp sharing
+    this.openSaleReceiptModal({
+      ...createdSale,
+      cashGiven,
+      phone
+    });
   }
 
   handleDeleteSale(id) {
     if (confirm('¿Segura que deseas eliminar este registro de servicio?')) {
       window.lussoDB.deleteSale(id);
       this.renderSales();
+      this.renderSalesHistory();
       this.renderDashboard();
+      this.renderPayroll();
       this.showToast('Registro eliminado.', 'info');
     }
+  }
+
+  // ================= HISTORIAL GENERAL DE COBROS & BÚSQUEDA POR HORARIO =================
+  renderSalesHistory() {
+    const sales = window.lussoDB.getSales();
+    const tableBody = document.getElementById('sales-history-table-body');
+    const isAdmin = window.lussoDB.isPrivilegedAdmin();
+    if (!tableBody) return;
+
+    const normalizeStr = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const searchVal = normalizeStr(this.salesHistorySearchQuery || document.getElementById('sales-history-search')?.value || '');
+    const dateExact = this.salesHistoryFilterDate || document.getElementById('sales-history-date')?.value || '';
+    const quickDate = this.salesHistoryQuickDate || document.getElementById('sales-history-quick-date')?.value || 'month';
+    const specFilter = this.salesHistoryFilterSpec || document.getElementById('sales-history-specialist')?.value || 'all';
+    const payFilter = this.salesHistoryFilterPayment || document.getElementById('sales-history-payment')?.value || 'all';
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const currentMonth = todayStr.substring(0, 7);
+
+    let filtered = [...sales].filter(s => {
+      // Date filter
+      if (dateExact) {
+        if (s.date !== dateExact) return false;
+      } else if (quickDate === 'today') {
+        if (s.date !== todayStr) return false;
+      } else if (quickDate === 'month') {
+        if (!s.date || !s.date.startsWith(currentMonth)) return false;
+      }
+
+      // Specialist filter
+      if (specFilter !== 'all') {
+        if (!s.specialist || !s.specialist.toLowerCase().includes(specFilter.toLowerCase())) return false;
+      }
+
+      // Payment filter
+      if (payFilter !== 'all') {
+        const sPay = (s.paymentMethod || '').toUpperCase();
+        if (payFilter === 'YAPE/PLIN') {
+          if (!sPay.includes('YAPE') && !sPay.includes('PLIN') && !sPay.includes('QR')) return false;
+        } else if (!sPay.includes(payFilter)) {
+          return false;
+        }
+      }
+
+      // Text search
+      if (searchVal) {
+        const match = normalizeStr(s.clientName).includes(searchVal) ||
+          normalizeStr(s.service).includes(searchVal) ||
+          normalizeStr(s.notes).includes(searchVal) ||
+          normalizeStr(s.commissionReason).includes(searchVal) ||
+          (s.phone && s.phone.includes(searchVal));
+        if (!match) return false;
+      }
+
+      return true;
+    });
+
+    // Sort strictly by Date & Time of attention (descending: newest first)
+    filtered.sort((a, b) => {
+      const dtA = `${a.date || '2026-01-01'}T${a.time || '00:00'}:00`;
+      const dtB = `${b.date || '2026-01-01'}T${b.time || '00:00'}:00`;
+      const timeA = new Date(dtA).getTime() || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = new Date(dtB).getTime() || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+
+    // Compute KPI mini bar
+    const totalAmount = filtered.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+    const totalTips = filtered.reduce((acc, s) => acc + (Number(s.tip) || 0), 0);
+    const totalCommissions = filtered.reduce((acc, s) => acc + (Number(s.commission) || 0), 0);
+
+    const elCount = document.getElementById('hist-stat-count');
+    const elTotal = document.getElementById('hist-stat-total');
+    const elTips = document.getElementById('hist-stat-tips');
+    const elComms = document.getElementById('hist-stat-commissions');
+
+    if (elCount) elCount.textContent = `${filtered.length} servicios`;
+    if (elTotal) elTotal.textContent = isAdmin ? `S/ ${totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : `S/ ••••••`;
+    if (elTips) elTips.textContent = `S/ ${totalTips.toFixed(2)}`;
+    if (elComms) elComms.textContent = `S/ ${totalCommissions.toFixed(2)}`;
+
+    if (filtered.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="text-center py-6 text-muted">
+            No se encontraron cobros registrados con los filtros seleccionados.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(sale => {
+      const pmClass = (sale.paymentMethod || 'POS').toLowerCase().replace('/', '-');
+      const timeDisplay = sale.time ? `⏰ ${sale.time}` : '⏰ --:--';
+      const tipDisplay = Number(sale.tip) > 0 ? `<span class="badge-pill-green">🎁 S/ ${Number(sale.tip).toFixed(2)}</span>` : '<span class="text-muted">-</span>';
+      const commDisplay = Number(sale.commission) > 0 ? `<span class="badge-pill-amber" title="${sale.commissionReason || 'Comisión por producto'}">📦 S/ ${Number(sale.commission).toFixed(2)}</span>` : '<span class="text-muted">-</span>';
+
+      html += `
+        <tr>
+          <td class="text-xs">
+            <div class="font-bold">📅 ${sale.date}</div>
+            <div class="text-muted">${timeDisplay}</div>
+          </td>
+          <td>
+            <span class="font-bold text-dark clickable" onclick="window.lussoCRM.openClientProfile('${encodeURIComponent(sale.clientName)}')">
+              ${sale.clientName}
+            </span>
+          </td>
+          <td>
+            <span class="font-medium">${sale.service}</span>
+          </td>
+          <td><span class="badge-specialist">${sale.specialist}</span></td>
+          <td><span class="font-bold text-primary">${isAdmin ? `S/ ${Number(sale.amount).toFixed(2)}` : 'S/ ••••••'}</span></td>
+          <td>${commDisplay}</td>
+          <td>${tipDisplay}</td>
+          <td><span class="badge-payment badge-${pmClass}">${sale.paymentMethod}</span></td>
+          <td class="text-xs text-muted max-w-150 truncate" title="${sale.notes || ''}">
+            ${sale.notes || '-'}
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="btn-xs btn-outline" title="Ver Historial" onclick="window.lussoCRM.openClientProfile('${encodeURIComponent(sale.clientName)}')">👁️</button>
+              <button class="btn-icon text-red" title="Eliminar registro" onclick="window.lussoCRM.handleDeleteSale('${sale.id}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    tableBody.innerHTML = html;
   }
 
   // ================= INVENTORY =================
@@ -2504,25 +3065,25 @@ class LussoCRM {
     const modal = document.getElementById('modal-staff-salary');
     if (!modal) return;
 
-    const kiara = window.lussoDB.getStaffByName('Kiara') || { baseSalary: 1600 };
-    const cielo = window.lussoDB.getStaffByName('Cielo') || { baseSalary: 1400 };
+    const kiara = window.lussoDB.getStaffByName('Kiara') || { baseSalary: 2500 };
+    const cielo = window.lussoDB.getStaffByName('Cielo') || { baseSalary: 2100 };
 
     const kiaraInput = document.getElementById('salary-kiara-input');
     const cieloInput = document.getElementById('salary-cielo-input');
     const kiaraCalc = document.getElementById('kiara-daily-calc');
     const cieloCalc = document.getElementById('cielo-daily-calc');
 
-    if (kiaraInput) kiaraInput.value = kiara.baseSalary;
-    if (cieloInput) cieloInput.value = cielo.baseSalary;
-    if (kiaraCalc) kiaraCalc.textContent = (kiara.baseSalary / 30).toFixed(2);
-    if (cieloCalc) cieloCalc.textContent = (cielo.baseSalary / 30).toFixed(2);
+    if (kiaraInput) kiaraInput.value = kiara.baseSalary || 2500;
+    if (cieloInput) cieloInput.value = cielo.baseSalary || 2100;
+    if (kiaraCalc) kiaraCalc.textContent = ((kiara.baseSalary || 2500) / 30).toFixed(2);
+    if (cieloCalc) cieloCalc.textContent = ((cielo.baseSalary || 2100) / 30).toFixed(2);
 
     modal.classList.add('open');
   }
 
   handleSaveStaffSalary() {
-    const salaryKiara = Number(document.getElementById('salary-kiara-input')?.value) || 1600;
-    const salaryCielo = Number(document.getElementById('salary-cielo-input')?.value) || 1400;
+    const salaryKiara = Number(document.getElementById('salary-kiara-input')?.value) || 2500;
+    const salaryCielo = Number(document.getElementById('salary-cielo-input')?.value) || 2100;
 
     window.lussoDB.saveStaffMember({ name: 'Kiara', baseSalary: salaryKiara, calculationBaseDays: 30, role: 'Estilista Master' });
     window.lussoDB.saveStaffMember({ name: 'Cielo', baseSalary: salaryCielo, calculationBaseDays: 30, role: 'Nail Artist' });
@@ -2554,11 +3115,11 @@ class LussoCRM {
     }
 
     if (p.totalTips > 0) {
-      msg += `💳 *Propinas en Tarjeta (100% Íntegras sin comisión):* +S/ ${p.totalTips.toFixed(2)}\n`;
+      msg += `🎁 *Propinas de Clientas (100% Íntegras sin retención):* +S/ ${p.totalTips.toFixed(2)}\n`;
     }
 
-    if (p.totalBonuses > 0) {
-      msg += `⭐ *Bonos Adicionales:* +S/ ${p.totalBonuses.toFixed(2)}\n`;
+    if (p.totalCommissions > 0) {
+      msg += `📦 *Comisiones por Venta de Ampollas & Insumos:* +S/ ${p.totalCommissions.toFixed(2)}\n`;
     }
 
     msg += `───────────────────────────────\n`;
@@ -2656,21 +3217,21 @@ class LussoCRM {
                 ` : ''}
                 ${p.totalTips > 0 ? `
                   <tr>
-                    <td>Propinas de Clientas en POS/Tarjeta (100% íntegras)</td>
+                    <td>Propinas de Clientas en Servicios (100% íntegras)</td>
                     <td class="text-right font-bold text-emerald">+ S/ ${p.totalTips.toFixed(2)}</td>
                   </tr>
                 ` : ''}
-                ${p.totalBonuses > 0 ? `
+                ${p.totalCommissions > 0 ? `
                   <tr>
-                    <td>Bonos por Desempeño / Ventas / Metas</td>
-                    <td class="text-right font-bold text-emerald">+ S/ ${p.totalBonuses.toFixed(2)}</td>
+                    <td>Comisiones por Venta de Ampollas & Insumos</td>
+                    <td class="text-right font-bold text-emerald">+ S/ ${p.totalCommissions.toFixed(2)}</td>
                   </tr>
                 ` : ''}
               </tbody>
               <tfoot>
                 <tr>
                   <th>TOTAL INGRESOS BRUTOS</th>
-                  <th class="text-right text-emerald">S/ ${(p.baseSalary + p.totalFeriados + p.totalTips + p.totalBonuses).toFixed(2)}</th>
+                  <th class="text-right text-emerald">S/ ${(p.baseSalary + p.totalFeriados + p.totalTips + p.totalCommissions).toFixed(2)}</th>
                 </tr>
               </tfoot>
             </table>
@@ -2682,27 +3243,38 @@ class LussoCRM {
             <table class="boleta-table">
               <thead>
                 <tr>
-                  <th>Concepto / Motivo</th>
+                  <th>Concepto</th>
                   <th class="text-right">Monto</th>
                 </tr>
               </thead>
               <tbody>
-                ${p.totalDeductions > 0 ? `
-                  ${absences.filter(a => Number(a.amount) < 0).map(a => `
-                    <tr>
-                      <td>${a.date}: ${a.reason}</td>
-                      <td class="text-right font-bold text-red">- S/ ${Math.abs(Number(a.amount)).toFixed(2)}</td>
-                    </tr>
-                  `).join('')}
-                ` : `
+                ${p.fullAbsenceCount > 0 ? `
                   <tr>
-                    <td colspan="2" class="text-muted text-center py-2">✨ Sin descuentos ni inasistencias en el período.</td>
+                    <td>Falta(s) Día Completo (${p.fullAbsenceCount} día(s))</td>
+                    <td class="text-right font-bold text-red">- S/ ${(p.fullAbsenceCount * p.dailyRate).toFixed(2)}</td>
                   </tr>
-                `}
+                ` : ''}
+                ${p.halfAbsenceCount > 0 ? `
+                  <tr>
+                    <td>Medio(s) Día(s) (${p.halfAbsenceCount})</td>
+                    <td class="text-right font-bold text-red">- S/ ${(p.halfAbsenceCount * (p.dailyRate / 2)).toFixed(2)}</td>
+                  </tr>
+                ` : ''}
+                ${p.tardinessCount > 0 ? `
+                  <tr>
+                    <td>Descuentos por Tardanzas registradas</td>
+                    <td class="text-right font-bold text-red">- S/ ${(p.totalDeductions - (p.fullAbsenceCount * p.dailyRate) - (p.halfAbsenceCount * (p.dailyRate / 2))).toFixed(2)}</td>
+                  </tr>
+                ` : ''}
+                ${p.totalDeductions === 0 ? `
+                  <tr>
+                    <td colspan="2" class="text-center text-muted py-2">Sin descuentos en este período (Asistencia 100%)</td>
+                  </tr>
+                ` : ''}
               </tbody>
               <tfoot>
                 <tr>
-                  <th>TOTAL DEDUCCIONES</th>
+                  <th>TOTAL DESCUENTOS</th>
                   <th class="text-right text-red">- S/ ${p.totalDeductions.toFixed(2)}</th>
                 </tr>
               </tfoot>
@@ -2710,8 +3282,8 @@ class LussoCRM {
           </div>
         </div>
 
-        <!-- Net Payable Big Highlight Box -->
-        <div class="boleta-net-highlight">
+        <!-- Net Total Box -->
+        <div class="boleta-net-total-row">
           <div class="net-left">
             <span class="net-label">TOTAL NETO A LIQUIDAR / DEPOSITAR:</span>
             <span class="net-currency">PEN (Soles Peruanos)</span>
@@ -2724,7 +3296,7 @@ class LussoCRM {
         <!-- Observaciones y Notas -->
         <div class="boleta-notes-box">
           <strong>Observaciones de Nómina:</strong>
-          Liquidación mensual calculada conforme a la política interna de Lusso Beauty Salón (base de cálculo de 30 días según la normativa peruana). Propinas en medios electrónicos transferidas en su totalidad sin retención.
+          Liquidación mensual calculada conforme a la política interna de Lusso Beauty Salón (base de cálculo de 30 días según la normativa peruana). Propinas y comisiones de productos transferidas en su totalidad sin retención.
         </div>
 
         <!-- Signatures Box -->
@@ -2789,7 +3361,12 @@ class LussoCRM {
     if (manualServiceDatalist) manualServiceDatalist.innerHTML = serviceOptionsHtml;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    ['pos-date-input', 'sale-date-input', 'caja-date-input', 'fact-date-input', 'manual-apt-date', 'sales-filter-date'].forEach(id => {
+    const nowTimeStr = new Date().toTimeString().substring(0, 5);
+
+    const posTimeInput = document.getElementById('pos-time-input');
+    if (posTimeInput && !posTimeInput.value) posTimeInput.value = nowTimeStr;
+
+    ['pos-date-input', 'sale-date-input', 'caja-date-input', 'fact-date-input', 'manual-apt-date', 'sales-filter-date', 'sales-history-date'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.value) el.value = todayStr;
     });

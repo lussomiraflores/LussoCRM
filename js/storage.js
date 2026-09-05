@@ -151,15 +151,8 @@ class LussoStorageService {
       id: inv.id || 'inv-' + (index + 1)
     }));
 
-    // Format petty cash
-    const pettyCash = (seed.pettyCash || []).map((e, index) => ({
-      id: 'caja-' + (index + 1),
-      date: e.date || '2026-07-01',
-      amount: Number(e.amount) || 0,
-      description: e.description || '',
-      notes: e.notes || '',
-      category: 'Caja Chica'
-    }));
+    // Format petty cash (Starts at 0 as requested)
+    const pettyCash = [];
 
     // Format invoices
     const invoices = (seed.invoices || []).map((e, index) => ({
@@ -175,7 +168,7 @@ class LussoStorageService {
       localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(clients));
       localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
       localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
-      localStorage.setItem(STORAGE_KEYS.EXPENSES_CAJA, JSON.stringify(pettyCash));
+      localStorage.setItem(STORAGE_KEYS.EXPENSES_CAJA, JSON.stringify([]));
       localStorage.setItem(STORAGE_KEYS.EXPENSES_FACT, JSON.stringify(invoices));
       localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(seed.servicesCatalog || []));
       localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(seed.monthlyOffers || []));
@@ -259,18 +252,24 @@ class LussoStorageService {
 
   addSale(saleData) {
     const sales = this.getSales();
+    const now = new Date();
+    const defaultTime = now.toTimeString().substring(0, 5);
     const newSale = {
       id: 'sal-' + Date.now(),
-      date: saleData.date || new Date().toISOString().split('T')[0],
+      date: saleData.date || now.toISOString().split('T')[0],
+      time: saleData.time || defaultTime,
       clientName: (saleData.clientName || 'Cliente General').trim(),
       specialist: saleData.specialist || 'Kiara',
       service: saleData.service || 'Servicio',
       supplies: saleData.supplies || '',
       drinks: saleData.drinks || '',
       amount: Number(saleData.amount) || 0,
+      tip: Number(saleData.tip) || 0,
+      commission: Number(saleData.commission) || 0,
+      commissionReason: saleData.commissionReason || '',
       paymentMethod: (saleData.paymentMethod || 'EFECTIVO').toUpperCase(),
       notes: saleData.notes || '',
-      createdAt: new Date().toISOString()
+      createdAt: saleData.createdAt || (saleData.date && saleData.time ? `${saleData.date}T${saleData.time}:00` : now.toISOString())
     };
     sales.unshift(newSale);
     try {
@@ -806,21 +805,21 @@ class LussoStorageService {
 
     const staff = this.getStaffByName(specialistName) || {
       name: specialistName,
-      baseSalary: specialistName.toLowerCase().includes('kiara') ? 1600 : 1400,
+      baseSalary: specialistName.toLowerCase().includes('kiara') ? 2500 : 2100,
       calculationBaseDays: 30,
       role: specialistName.toLowerCase().includes('kiara') ? 'Estilista Master' : 'Nail Artist'
     };
 
-    const baseSalary = Number(staff.baseSalary) || 1500;
+    const baseSalary = Number(staff.baseSalary) || (specialistName.toLowerCase().includes('kiara') ? 2500 : 2100);
     const baseDays = Number(staff.calculationBaseDays) || 30;
     const dailyRate = Math.round((baseSalary / baseDays) * 100) / 100;
 
     const items = this.getAbsences(month, specialistName);
 
     let totalDeductions = 0; // Descuentos por faltas/tardanzas
-    let totalTips = 0; // Propinas tarjeta 100% integras
+    let manualTips = 0; // Propinas manuales
     let totalFeriados = 0; // Dias feriados trabajados
-    let totalBonuses = 0; // Bonos adicionales
+    let manualBonuses = 0; // Bonos manuales
 
     let fullAbsenceCount = 0;
     let halfAbsenceCount = 0;
@@ -840,13 +839,27 @@ class LussoStorageService {
       } else if (item.type === 'feriado_trabajado') {
         totalFeriados += Math.abs(amt);
       } else if (item.type === 'propina_tarjeta') {
-        totalTips += Math.abs(amt);
+        manualTips += Math.abs(amt);
       } else if (item.type === 'bono') {
-        totalBonuses += Math.abs(amt);
+        manualBonuses += Math.abs(amt);
       }
     });
 
-    const netPayable = Math.max(0, baseSalary - totalDeductions + totalFeriados + totalTips + totalBonuses);
+    // Sum Tips and Product Commissions directly from all Sales in the month
+    const allSales = this.getSales();
+    const salesInMonth = allSales.filter(s => {
+      const specMatch = (s.specialist || '').toLowerCase().includes(specialistName.toLowerCase());
+      const monthMatch = s.date && s.date.startsWith(month);
+      return specMatch && monthMatch;
+    });
+
+    const salesTips = salesInMonth.reduce((acc, s) => acc + (Number(s.tip) || 0), 0);
+    const salesCommissions = salesInMonth.reduce((acc, s) => acc + (Number(s.commission) || 0), 0);
+
+    const totalTips = Math.round((manualTips + salesTips) * 100) / 100;
+    const totalCommissions = Math.round((manualBonuses + salesCommissions) * 100) / 100;
+
+    const netPayable = Math.max(0, baseSalary - totalDeductions + totalFeriados + totalTips + totalCommissions);
 
     return {
       specialist: staff.name,
@@ -859,10 +872,14 @@ class LussoStorageService {
       fullAbsenceCount,
       halfAbsenceCount,
       tardinessCount,
+      salesCount: salesInMonth.length,
+      salesTips,
+      salesCommissions,
       totalDeductions: Math.round(totalDeductions * 100) / 100,
-      totalTips: Math.round(totalTips * 100) / 100,
+      totalTips,
+      totalCommissions,
       totalFeriados: Math.round(totalFeriados * 100) / 100,
-      totalBonuses: Math.round(totalBonuses * 100) / 100,
+      totalBonuses: totalCommissions,
       netPayable: Math.round(netPayable * 100) / 100,
       recordsCount: items.length,
       records: items

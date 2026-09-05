@@ -33,29 +33,34 @@ Sistema integral de gestión comercial, agenda de citas, punto de venta (POS) y 
 
 ---
 
-## 📂 Estructura del Repositorio
+## 📂 Estructura del Repositorio para GitHub
 
 ```text
 LUSSO/
 │
-├── index.html                  # Aplicación web completa (CRM, Agenda, POS y Nómina)
+├── index.html                  # Aplicación web completa (CRM, Agenda, POS, Historial y Nómina)
+├── catalogo.html               # Catálogo Virtual interactivo para mostrar a clientas en tablet o celular
 │
 ├── css/
-│   └── styles.css              # Hoja de estilos del sistema (Diseño responsive y @media print)
+│   ├── styles.css              # Hoja de estilos del sistema (POS, tablet 11", temas y @media print)
+│   └── catalogo.css            # Hoja de estilos de lujo del Catálogo Virtual
 │
 ├── js/
 │   ├── app.js                  # Inicializador global y manejador de modales
-│   ├── crm.js                  # Controlador general: Agenda, POS, Clientas, Google Cal y Nómina
-│   ├── data.js                 # Datos semilla iniciales (213 clientas y catálogo 2026)
-│   ├── storage.js              # Capa de almacenamiento local (LocalStorage) y cálculos contables
-│   └── supabase.js             # Módulo de sincronización en la nube con Supabase PostgreSQL
+│   ├── crm.js                  # Controlador general: POS, Historial, Clientas, Vueltos y Nómina
+│   ├── data.js                 # Catálogo oficial consolidado (37 servicios) y sueldos (Kiara S/2500, Cielo S/2100)
+│   ├── gcalendar.js            # Módulo de integración con Google Calendar API (100% Gratis)
+│   ├── storage.js              # Capa de almacenamiento Offline-First y cálculos contables
+│   ├── supabase.js             # Módulo de sincronización en la nube con Supabase PostgreSQL
+│   ├── catalogo.js             # Lógica interactiva del Catálogo Virtual
+│   └── landing.js              # Navegación general y componentes
 │
-├── supabase_schema.sql         # Esquema de tablas y políticas RLS para base de datos
+├── supabase_schema.sql         # Esquema de tablas PostgreSQL para Supabase
 ├── initial_data.json           # Respaldo JSON completo consolidado
-├── .gitignore                  # Exclusiones de Git (node_modules, logs, credenciales)
+├── .gitignore                  # Exclusiones de Git (archivos temporales, Excels privados, credenciales)
 ├── README.md                   # Documentación técnica del proyecto
 ├── package.json                # Información y metadatos del proyecto
-└── vercel.json                 # Configuración para despliegue en la nube
+└── vercel.json                 # Configuración para despliegue automático en Vercel
 ```
 
 ---

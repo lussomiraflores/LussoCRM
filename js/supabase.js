@@ -68,12 +68,16 @@ class LussoSupabase {
       await this.client.from('sales').upsert({
         id: sale.id,
         date: sale.date,
+        time: sale.time || '12:00',
         client_name: sale.clientName,
         specialist: sale.specialist,
         service: sale.service,
         supplies: sale.supplies || '',
         drinks: sale.drinks || '',
         amount: Number(sale.amount) || 0,
+        tip: Number(sale.tip) || 0,
+        commission: Number(sale.commission) || 0,
+        commission_reason: sale.commissionReason || '',
         payment_method: sale.paymentMethod,
         notes: sale.notes || '',
         created_at: sale.createdAt || new Date().toISOString()

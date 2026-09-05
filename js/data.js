@@ -7598,7 +7598,7 @@ window.LUSSO_SEED_DATA = {
       "name": "Kiara",
       "role": "Estilista Master & Colorista",
       "avatar": "💇‍♀️",
-      "baseSalary": 1600,
+      "baseSalary": 2500,
       "phone": "982799999",
       "calculationBaseDays": 30
     },
@@ -7607,7 +7607,7 @@ window.LUSSO_SEED_DATA = {
       "name": "Cielo",
       "role": "Nail Artist & Esteticista",
       "avatar": "💅",
-      "baseSalary": 1400,
+      "baseSalary": 2100,
       "phone": "993511745",
       "calculationBaseDays": 30
     }
