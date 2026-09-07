@@ -517,6 +517,7 @@
                     <select id="pos-specialist-select" class="form-select form-input-lg" required>
                       <option value="Kiara">💇‍♀️ Kiara (Estilista Master)</option>
                       <option value="Cielo">💅 Cielo (Nail Artist)</option>
+                      <option value="Kiara & Cielo">💇‍♀️💅 Kiara & Cielo (Compartido)</option>
                     </select>
                   </div>
                   <div class="form-group">
@@ -530,7 +531,10 @@
 
                 <!-- Quick Service Category Selector -->
                 <div class="form-group mb-3">
-                  <label class="form-label font-bold mb-1">⚡ Selector Rápido de Servicios:</label>
+                  <div class="d-flex justify-between align-center mb-1">
+                    <label class="form-label font-bold mb-0">⚡ Selector Rápido de Servicios (Toca para agregar a la cuenta):</label>
+                    <span class="text-xs text-burgundy font-bold">💡 Puedes tocar varios</span>
+                  </div>
                   <div class="pos-service-categories mb-2">
                     <button type="button" class="pos-cat-btn active" data-cat="all" onclick="window.lussoCRM.filterPOSQuickServices('all')">Todos</button>
                     <button type="button" class="pos-cat-btn" data-cat="manicure" onclick="window.lussoCRM.filterPOSQuickServices('manicure')">💅 Uñas & Manicure</button>
@@ -547,15 +551,60 @@
                   </div>
                 </div>
 
-                <div class="form-group mb-3">
-                  <label class="form-label font-bold">Servicio Realizado *</label>
-                  <input type="text" id="pos-service-input" list="services-datalist-pos" class="form-input" placeholder="Toca un botón de arriba o escribe (ej. Manicure Gel UV, Mechas...)" required>
-                  <datalist id="services-datalist-pos"></datalist>
+                <!-- Manual / Custom Service Input Row -->
+                <div class="pos-manual-service-box mb-3">
+                  <div class="d-flex justify-between align-center mb-1">
+                    <label class="form-label font-bold mb-0 text-xs">➕ O escribe un servicio manual para agregarlo:</label>
+                    <span class="text-xs text-muted">¿Servicio especial o fuera de lista?</span>
+                  </div>
+                  <div class="pos-manual-inputs-grid">
+                    <input type="text" id="pos-manual-service-name" list="services-datalist-pos" class="form-input" placeholder="Nombre del servicio (ej. Baño de Color, Efecto Espejo)..." onkeydown="if(event.key==='Enter'){event.preventDefault();window.lussoCRM.addManualPOSItem();}">
+                    <datalist id="services-datalist-pos"></datalist>
+                    <select id="pos-manual-service-spec" class="form-select">
+                      <option value="Kiara">💇‍♀️ Kiara</option>
+                      <option value="Cielo">💅 Cielo</option>
+                    </select>
+                    <div style="position: relative; display: flex; align-items: center;">
+                      <span style="position: absolute; left: 8px; font-weight: 700; color: #800020; font-size: 0.8rem; pointer-events: none;">S/</span>
+                      <input type="number" step="0.5" id="pos-manual-service-price" class="form-input font-bold" style="padding-left: 26px;" placeholder="0.00" onkeydown="if(event.key==='Enter'){event.preventDefault();window.lussoCRM.addManualPOSItem();}">
+                    </div>
+                    <button type="button" class="btn-primary-soft btn-sm font-bold" onclick="window.lussoCRM.addManualPOSItem()">
+                      <span>+ Añadir</span>
+                    </button>
+                  </div>
                 </div>
+
+                <!-- Cart / Ticket of Services for this Checkout -->
+                <div class="pos-ticket-box mb-3" id="pos-ticket-box">
+                  <div class="pos-ticket-header">
+                    <div class="d-flex align-center gap-2">
+                      <span class="font-bold text-sm">🛒 Servicios en esta Atención (<span id="pos-ticket-count">0</span>)</span>
+                      <span class="badge-pill-rose text-xs" id="pos-multi-badge" style="display: none;">Multi-servicio</span>
+                    </div>
+                    <button type="button" class="btn-xs btn-outline text-muted" id="btn-clear-pos-ticket" onclick="window.lussoCRM.clearPOSTicket()" style="display: none;">🗑️ Vaciar lista</button>
+                  </div>
+                  <div id="pos-ticket-items-list" class="pos-ticket-items-list">
+                    <div class="pos-ticket-empty">
+                      <span>✨ Toca un servicio en los botones de arriba o escribe uno manual para sumarlo al cobro.</span>
+                    </div>
+                  </div>
+                  <div class="pos-ticket-footer" id="pos-ticket-footer" style="display: none;">
+                    <div class="d-flex justify-between align-center">
+                      <span class="text-xs text-muted">Subtotal de servicios sumados:</span>
+                      <span class="font-bold text-burgundy text-base" id="pos-ticket-subtotal-display">S/ 0.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Synchronized / Fallback Service Text Input (Maintained for form submission compatibility) -->
+                <input type="hidden" id="pos-service-input" required>
 
                 <div class="form-row-2 mb-3">
                   <div class="form-group">
-                    <label class="form-label font-bold">Monto del Servicio (S/) *</label>
+                    <div class="d-flex justify-between align-center">
+                      <label class="form-label font-bold">Monto Total a Cobrar (S/) *</label>
+                      <span class="text-xs text-muted" id="pos-amount-auto-label">⚡ Suma automática</span>
+                    </div>
                     <input type="number" step="0.5" id="pos-amount-input" class="form-input form-input-lg font-bold text-primary" placeholder="0.00" required>
                   </div>
                   <div class="form-group">
@@ -611,6 +660,17 @@
                       <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '10';">+S/ 10</button>
                       <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '15';">+S/ 15</button>
                       <button type="button" class="btn-xs btn-outline" onclick="document.getElementById('pos-tip-input').value = '20';">+S/ 20</button>
+                    </div>
+                  </div>
+                  <!-- Shared Tip Distribution (Shown when multiple specialists are in ticket) -->
+                  <div id="pos-tip-recipient-row" class="mt-2" style="display: none;">
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="text-xs font-bold text-muted">Destinataria de propina:</span>
+                      <div class="d-flex gap-1">
+                        <button type="button" class="btn-xs pos-tip-rec-btn active" data-rec="Ambas" onclick="window.lussoCRM.setTipRecipient('Ambas')">⚖️ Ambas (50/50)</button>
+                        <button type="button" class="btn-xs pos-tip-rec-btn" data-rec="Kiara" onclick="window.lussoCRM.setTipRecipient('Kiara')">💇‍♀️ Kiara</button>
+                        <button type="button" class="btn-xs pos-tip-rec-btn" data-rec="Cielo" onclick="window.lussoCRM.setTipRecipient('Cielo')">💅 Cielo</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1740,8 +1800,17 @@
             <div class="receipt-row"><span>Clienta:</span> <strong id="receipt-client">-</strong></div>
             <div class="receipt-row"><span>Especialista:</span> <span id="receipt-specialist">-</span></div>
             <div class="receipt-divider">--------------------------------</div>
-            <div class="receipt-row"><span>Servicio:</span> <span id="receipt-service">-</span></div>
-            <div class="receipt-row"><span>Importe:</span> <strong id="receipt-amount">S/ 0.00</strong></div>
+            <!-- Single service display -->
+            <div id="receipt-single-service-box">
+              <div class="receipt-row"><span>Servicio:</span> <span id="receipt-service">-</span></div>
+              <div class="receipt-row"><span>Importe:</span> <strong id="receipt-amount">S/ 0.00</strong></div>
+            </div>
+            <!-- Multi-services itemized breakdown -->
+            <div id="receipt-multi-items-box" style="display: none;">
+              <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; text-transform: uppercase;">Detalle de Servicios:</div>
+              <div id="receipt-items-table" class="receipt-items-breakdown"></div>
+              <div class="receipt-row" id="receipt-subtotal-row"><span>Subtotal Servicios:</span> <strong id="receipt-subtotal">S/ 0.00</strong></div>
+            </div>
             <div class="receipt-row" id="receipt-tip-row"><span>Propina:</span> <span id="receipt-tip">S/ 0.00</span></div>
             <div class="receipt-row" id="receipt-comm-row"><span>Comisión / Insumo:</span> <span id="receipt-comm">S/ 0.00</span></div>
             <div class="receipt-row" id="receipt-change-row"><span>Vuelto Entregado:</span> <span id="receipt-change">S/ 0.00</span></div>

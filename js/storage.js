@@ -297,10 +297,12 @@ class LussoStorageService {
       clientName: (saleData.clientName || 'Cliente General').trim(),
       specialist: saleData.specialist || 'Kiara',
       service: saleData.service || 'Servicio',
+      items: Array.isArray(saleData.items) ? saleData.items : [],
       supplies: saleData.supplies || '',
       drinks: saleData.drinks || '',
       amount: Number(saleData.amount) || 0,
       tip: Number(saleData.tip) || 0,
+      tipRecipient: saleData.tipRecipient || '',
       commission: Number(saleData.commission) || 0,
       commissionReason: saleData.commissionReason || '',
       paymentMethod: (saleData.paymentMethod || 'EFECTIVO').toUpperCase(),
@@ -896,12 +898,25 @@ class LussoStorageService {
     // Sum Tips and Product Commissions directly from all Sales in the month
     const allSales = this.getSales();
     const salesInMonth = allSales.filter(s => {
-      const specMatch = (s.specialist || '').toLowerCase().includes(specialistName.toLowerCase());
+      const specMatch = (s.specialist || '').toLowerCase().includes(specialistName.toLowerCase()) ||
+        (Array.isArray(s.items) && s.items.some(it => (it.specialist || '').toLowerCase().includes(specialistName.toLowerCase())));
       const monthMatch = s.date && s.date.startsWith(month);
       return specMatch && monthMatch;
     });
 
-    const salesTips = salesInMonth.reduce((acc, s) => acc + (Number(s.tip) || 0), 0);
+    const salesTips = salesInMonth.reduce((acc, s) => {
+      const tipVal = Number(s.tip) || 0;
+      if (tipVal <= 0) return acc;
+      const rec = (s.tipRecipient || '').toLowerCase();
+      const specLow = specialistName.toLowerCase();
+      if (rec === specLow) return acc + tipVal;
+      if (rec === 'ambas') return acc + (tipVal / 2);
+      if (rec && rec !== specLow) return acc; // Assigned to the other specialist
+      if ((s.specialist || '').includes('&')) {
+        return acc + (tipVal / 2); // default 50/50 on shared attention
+      }
+      return acc + tipVal;
+    }, 0);
     const salesCommissions = salesInMonth.reduce((acc, s) => acc + (Number(s.commission) || 0), 0);
 
     const totalTips = Math.round((manualTips + salesTips) * 100) / 100;

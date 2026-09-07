@@ -21,6 +21,8 @@ class LussoCRM {
     this.appointmentFilterStatus = 'all';
     this.appointmentSearchQuery = '';
     this.pendingTab = null;
+    this.posItems = []; // Multi-service checkout cart
+    this.posTipRecipient = 'Ambas'; // Default tip recipient on mixed specialist sales
     this.init();
   }
 
@@ -1806,15 +1808,20 @@ class LussoCRM {
 
   replicateServiceInPOS(serviceEncoded, amount, specialist) {
     const service = decodeURIComponent(serviceEncoded);
-    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
-    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
-    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
-
-    if (srvInput) srvInput.value = service;
-    if (amtInput) amtInput.value = amount;
-    if (specSelect && specialist) specSelect.value = specialist;
-
-    this.showToast(`Servicio "${service}" precargado a S/ ${amount}. Puedes modificar el monto si aplica cambio.`, 'success');
+    this.posItems = [];
+    if (service && service.includes(' + ')) {
+      const parts = service.split(' + ');
+      const totalAmt = parseFloat(amount) || 0;
+      const approxPrice = Math.round((totalAmt / parts.length) * 100) / 100;
+      parts.forEach((p, idx) => {
+        const itemPrice = idx === parts.length - 1 ? (totalAmt - (approxPrice * (parts.length - 1))) : approxPrice;
+        this.addPOSItem(p.trim(), itemPrice, specialist);
+      });
+    } else {
+      this.addPOSItem(service, amount, specialist);
+    }
+    this.renderPOSTicket();
+    this.showToast(`Servicio "${service}" precargado en la cuenta (S/ ${amount}).`, 'success');
   }
 
   // ================= CLIENT DIRECTORY & 360 =================
@@ -2001,14 +2008,21 @@ class LussoCRM {
     this.switchTab('sales');
 
     const cliInput = document.getElementById('pos-client-input') || document.getElementById('sale-client-input');
-    const srvInput = document.getElementById('pos-service-input') || document.getElementById('sale-service-input');
-    const amtInput = document.getElementById('pos-amount-input') || document.getElementById('sale-amount-input');
-    const specSelect = document.getElementById('pos-specialist-select') || document.getElementById('sale-specialist-select');
-
     if (cliInput) cliInput.value = clientName;
-    if (srvInput) srvInput.value = service;
-    if (amtInput) amtInput.value = amount;
-    if (specSelect && specialist) specSelect.value = specialist;
+
+    this.posItems = [];
+    if (service && service.includes(' + ')) {
+      const parts = service.split(' + ');
+      const totalAmt = parseFloat(amount) || 0;
+      const approxPrice = Math.round((totalAmt / parts.length) * 100) / 100;
+      parts.forEach((p, idx) => {
+        const itemPrice = idx === parts.length - 1 ? (totalAmt - (approxPrice * (parts.length - 1))) : approxPrice;
+        this.addPOSItem(p.trim(), itemPrice, specialist);
+      });
+    } else {
+      this.addPOSItem(service, amount, specialist);
+    }
+    this.renderPOSTicket();
 
     this.handlePOSClientInputChange(clientName);
     this.showToast(`Cargado servicio para ${clientName}: ${service} a S/ ${amount}`, 'success');
@@ -2194,9 +2208,12 @@ class LussoCRM {
       const safeName = (s.name || '').replace(/'/g, "\\'");
       const spec = s.specialist || (s.category === 'Pedicure' ? 'Cielo' : 'Kiara');
       const promoBadge = s.isPromo ? '⭐ ' : '';
+      const inCartCount = (this.posItems || []).filter(it => it.name.toLowerCase() === (s.name || '').toLowerCase()).length;
+      const countBadge = inCartCount > 0 ? `<span class="chip-qty-badge">✓ ${inCartCount}</span>` : '';
+      const chipClass = inCartCount > 0 ? 'chip-in-ticket' : '';
       return `
-        <button type="button" class="pos-quick-chip ${s.isPromo ? 'chip-promo' : ''}" onclick="window.lussoCRM.selectPOSQuickService('${safeName}', ${s.price}, '${spec}')">
-          <span class="chip-name">${promoBadge}${s.name}</span>
+        <button type="button" class="pos-quick-chip ${s.isPromo ? 'chip-promo' : ''} ${chipClass}" onclick="window.lussoCRM.selectPOSQuickService('${safeName}', ${s.price}, '${spec}')">
+          <span class="chip-name">${promoBadge}${s.name} ${countBadge}</span>
           <span class="chip-price">S/ ${Number(s.price).toFixed(0)}</span>
         </button>
       `;
@@ -2204,6 +2221,7 @@ class LussoCRM {
   }
 
   filterPOSQuickServices(category) {
+    this.currentPOSCategory = category;
     document.querySelectorAll('.pos-cat-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-cat') === category);
     });
@@ -2211,21 +2229,194 @@ class LussoCRM {
   }
 
   selectPOSQuickService(name, price, specialist) {
-    const srvInput = document.getElementById('pos-service-input');
-    const amtInput = document.getElementById('pos-amount-input');
-    const specSelect = document.getElementById('pos-specialist-select');
+    this.addPOSItem(name, price, specialist);
+  }
 
-    if (srvInput) srvInput.value = name;
+  addPOSItem(name, price, specialist) {
+    if (!name || isNaN(price) || price < 0) return;
+    
+    let spec = specialist || 'Kiara';
+    const lowName = name.toLowerCase();
+    if (lowName.includes('manicure') || lowName.includes('pedicure') || lowName.includes('uñas') || lowName.includes('acrílico') || lowName.includes('gel') || lowName.includes('pestaña') || lowName.includes('ceja')) {
+      if (!specialist || specialist.includes('Kiara / Cielo') || specialist === 'Kiara') {
+        spec = 'Cielo';
+      }
+    }
+
+    const newItem = {
+      id: 'item-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      name: name.trim(),
+      price: parseFloat(price) || 0,
+      specialist: spec
+    };
+
+    this.posItems.push(newItem);
+    this.renderPOSTicket();
+    this.showToast(`➕ ${newItem.name} (S/ ${newItem.price.toFixed(2)}) sumado a la cuenta`, 'info');
+  }
+
+  addManualPOSItem() {
+    const nameInput = document.getElementById('pos-manual-service-name');
+    const priceInput = document.getElementById('pos-manual-service-price');
+    const specSelect = document.getElementById('pos-manual-service-spec');
+
+    const name = nameInput?.value.trim();
+    const price = parseFloat(priceInput?.value);
+    const spec = specSelect?.value || 'Kiara';
+
+    if (!name) {
+      this.showToast('Por favor escribe el nombre del servicio.', 'warning');
+      nameInput?.focus();
+      return;
+    }
+    if (isNaN(price) || price <= 0) {
+      this.showToast('Por favor introduce un precio válido en soles.', 'warning');
+      priceInput?.focus();
+      return;
+    }
+
+    this.addPOSItem(name, price, spec);
+    if (nameInput) nameInput.value = '';
+    if (priceInput) priceInput.value = '';
+  }
+
+  removePOSItem(index) {
+    if (index >= 0 && index < this.posItems.length) {
+      const removed = this.posItems.splice(index, 1)[0];
+      this.renderPOSTicket();
+      this.showToast(`Servicio "${removed.name}" eliminado de la cuenta.`, 'info');
+    }
+  }
+
+  clearPOSTicket() {
+    this.posItems = [];
+    this.renderPOSTicket();
+    this.showToast('Cuenta de servicios vaciada.', 'info');
+  }
+
+  updatePOSItemSpecialist(index, newSpec) {
+    if (this.posItems[index]) {
+      this.posItems[index].specialist = newSpec;
+      this.syncPOSTotalAndSpecialists();
+    }
+  }
+
+  updatePOSItemPrice(index, newPrice) {
+    const val = parseFloat(newPrice);
+    if (!isNaN(val) && val >= 0 && this.posItems[index]) {
+      this.posItems[index].price = val;
+      this.syncPOSTotalAndSpecialists();
+    }
+  }
+
+  renderPOSTicket() {
+    const listContainer = document.getElementById('pos-ticket-items-list');
+    const countEl = document.getElementById('pos-ticket-count');
+    const multiBadge = document.getElementById('pos-multi-badge');
+    const clearBtn = document.getElementById('btn-clear-pos-ticket');
+    const footerEl = document.getElementById('pos-ticket-footer');
+    const subtotalEl = document.getElementById('pos-ticket-subtotal-display');
+
+    if (countEl) countEl.textContent = this.posItems.length;
+    if (multiBadge) multiBadge.style.display = this.posItems.length > 1 ? 'inline-block' : 'none';
+    if (clearBtn) clearBtn.style.display = this.posItems.length > 0 ? 'inline-block' : 'none';
+    if (footerEl) footerEl.style.display = this.posItems.length > 0 ? 'block' : 'none';
+
+    if (!listContainer) return;
+
+    if (this.posItems.length === 0) {
+      listContainer.innerHTML = `
+        <div class="pos-ticket-empty">
+          <span>✨ Toca un servicio en los botones de arriba o escribe uno manual para sumarlo al cobro.</span>
+        </div>
+      `;
+      if (subtotalEl) subtotalEl.textContent = 'S/ 0.00';
+      this.syncPOSTotalAndSpecialists();
+      this.renderPOSQuickServices(this.currentPOSCategory || 'all');
+      return;
+    }
+
+    let html = '';
+    this.posItems.forEach((item, index) => {
+      const isKiara = item.specialist === 'Kiara';
+      const isCielo = item.specialist === 'Cielo';
+
+      html += `
+        <div class="pos-ticket-item">
+          <div class="pos-ticket-item-name">
+            <span class="text-xs text-muted font-bold">#${index + 1}</span>
+            <span>${item.name}</span>
+          </div>
+          <div>
+            <select class="pos-ticket-item-spec" onchange="window.lussoCRM.updatePOSItemSpecialist(${index}, this.value)">
+              <option value="Kiara" ${isKiara ? 'selected' : ''}>💇‍♀️ Kiara</option>
+              <option value="Cielo" ${isCielo ? 'selected' : ''}>💅 Cielo</option>
+            </select>
+          </div>
+          <div class="pos-ticket-item-price-wrap">
+            <span>S/</span>
+            <input type="number" step="0.5" class="pos-ticket-item-price-input" value="${item.price}" onchange="window.lussoCRM.updatePOSItemPrice(${index}, this.value)">
+          </div>
+          <div>
+            <button type="button" class="pos-ticket-item-remove" title="Eliminar servicio" onclick="window.lussoCRM.removePOSItem(${index})">✕</button>
+          </div>
+        </div>
+      `;
+    });
+
+    listContainer.innerHTML = html;
+    this.syncPOSTotalAndSpecialists();
+    this.renderPOSQuickServices(this.currentPOSCategory || 'all');
+  }
+
+  syncPOSTotalAndSpecialists() {
+    const amtInput = document.getElementById('pos-amount-input');
+    const srvInput = document.getElementById('pos-service-input');
+    const specSelect = document.getElementById('pos-specialist-select');
+    const subtotalEl = document.getElementById('pos-ticket-subtotal-display');
+    const tipRecipientRow = document.getElementById('pos-tip-recipient-row');
+
+    const total = this.posItems.reduce((acc, it) => acc + (Number(it.price) || 0), 0);
+
+    if (subtotalEl) subtotalEl.textContent = `S/ ${total.toFixed(2)}`;
     if (amtInput) {
-      amtInput.value = price;
+      amtInput.value = total > 0 ? total : '';
       this.calculateCashChange();
     }
-    if (specSelect && specialist) {
-      if (specialist.includes('Kiara')) specSelect.value = 'Kiara';
-      else if (specialist.includes('Cielo')) specSelect.value = 'Cielo';
+
+    if (srvInput) {
+      if (this.posItems.length > 0) {
+        srvInput.value = this.posItems.map(it => it.name).join(' + ');
+      } else {
+        srvInput.value = '';
+      }
     }
 
-    this.showToast(`✨ Servicio seleccionado: ${name} (S/ ${price})`, 'info');
+    // Auto-sync primary specialist select
+    if (this.posItems.length > 0 && specSelect) {
+      const hasKiara = this.posItems.some(it => it.specialist === 'Kiara');
+      const hasCielo = this.posItems.some(it => it.specialist === 'Cielo');
+
+      if (hasKiara && hasCielo) {
+        specSelect.value = 'Kiara & Cielo';
+        if (tipRecipientRow) tipRecipientRow.style.display = 'block';
+      } else if (hasCielo) {
+        specSelect.value = 'Cielo';
+        if (tipRecipientRow) tipRecipientRow.style.display = 'none';
+      } else {
+        specSelect.value = 'Kiara';
+        if (tipRecipientRow) tipRecipientRow.style.display = 'none';
+      }
+    } else if (tipRecipientRow) {
+      tipRecipientRow.style.display = 'none';
+    }
+  }
+
+  setTipRecipient(recipient) {
+    this.posTipRecipient = recipient;
+    document.querySelectorAll('.pos-tip-rec-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-rec') === recipient);
+    });
   }
 
   setPOSPaymentMethod(method) {
@@ -2311,8 +2502,12 @@ class LussoCRM {
     const dateEl = document.getElementById('receipt-date');
     const clientEl = document.getElementById('receipt-client');
     const specEl = document.getElementById('receipt-specialist');
+    const singleServiceBox = document.getElementById('receipt-single-service-box');
+    const multiItemsBox = document.getElementById('receipt-multi-items-box');
+    const itemsTable = document.getElementById('receipt-items-table');
     const serviceEl = document.getElementById('receipt-service');
     const amountEl = document.getElementById('receipt-amount');
+    const subtotalEl = document.getElementById('receipt-subtotal');
     const tipEl = document.getElementById('receipt-tip');
     const tipRow = document.getElementById('receipt-tip-row');
     const commEl = document.getElementById('receipt-comm');
@@ -2327,8 +2522,27 @@ class LussoCRM {
     if (dateEl) dateEl.textContent = `${sale.date} ${sale.time ? '• ' + sale.time : ''}`;
     if (clientEl) clientEl.textContent = sale.clientName;
     if (specEl) specEl.textContent = sale.specialist;
-    if (serviceEl) serviceEl.textContent = sale.service;
-    if (amountEl) amountEl.textContent = `S/ ${Number(sale.amount).toFixed(2)}`;
+
+    const hasMultiItems = Array.isArray(sale.items) && sale.items.length > 1;
+
+    if (hasMultiItems && multiItemsBox && itemsTable) {
+      if (singleServiceBox) singleServiceBox.style.display = 'none';
+      multiItemsBox.style.display = 'block';
+
+      itemsTable.innerHTML = sale.items.map(it => `
+        <div class="receipt-item-row">
+          <span>• ${it.name} <small>(${it.specialist || 'Lusso'})</small></span>
+          <strong>S/ ${Number(it.price).toFixed(2)}</strong>
+        </div>
+      `).join('');
+
+      if (subtotalEl) subtotalEl.textContent = `S/ ${Number(sale.amount).toFixed(2)}`;
+    } else {
+      if (multiItemsBox) multiItemsBox.style.display = 'none';
+      if (singleServiceBox) singleServiceBox.style.display = 'block';
+      if (serviceEl) serviceEl.textContent = sale.service;
+      if (amountEl) amountEl.textContent = `S/ ${Number(sale.amount).toFixed(2)}`;
+    }
 
     if (tipEl && tipRow) {
       const tipVal = Number(sale.tip) || 0;
@@ -2375,17 +2589,33 @@ class LussoCRM {
       phone = '51' + phone;
     }
 
-    const total = Number(sale.amount) + (Number(sale.tip) || 0);
+    const tipVal = Number(sale.tip) || 0;
+    const total = Number(sale.amount) + tipVal;
+    const hasMultiItems = Array.isArray(sale.items) && sale.items.length > 1;
+
+    let servicesSection = '';
+    if (hasMultiItems) {
+      servicesSection = [
+        `💅 *Servicios Realizados:*`,
+        ...sale.items.map(it => `  • ${it.name} (${it.specialist || 'Lusso'}) — S/ ${Number(it.price).toFixed(2)}`),
+        `💰 Subtotal Servicios: S/ ${Number(sale.amount).toFixed(2)}`
+      ].join('\n');
+    } else {
+      servicesSection = `💅 Servicio: *${sale.service}* (S/ ${Number(sale.amount).toFixed(2)})`;
+    }
+
     const msg = [
       `✨ ¡Hola ${sale.clientName}! Gracias por visitar *LUSSO BEAUTY SALÓN* 💖`,
       `Aquí tienes el detalle de tu atención de hoy:`,
       ``,
       `🧾 *COMPROBANTE DE ATENCIÓN*`,
       `📅 Fecha: ${sale.date} ${sale.time ? '⏰ ' + sale.time : ''}`,
-      `💅 Servicio: *${sale.service}*`,
-      `👩‍🎨 Especialista: ${sale.specialist}`,
+      `👩‍🎨 Especialista(s): ${sale.specialist}`,
+      ``,
+      servicesSection,
+      tipVal > 0 ? `🎁 Propina: S/ ${tipVal.toFixed(2)}` : '',
       `💳 Método de Pago: ${sale.paymentMethod}`,
-      `💰 Total: *S/ ${total.toFixed(2)}*`,
+      `💰 *TOTAL COBRADO: S/ ${total.toFixed(2)}*`,
       sale.notes ? `📝 Notas: ${sale.notes}` : '',
       ``,
       `¡Fue un placer atenderte! Recuerda que puedes agendar tu próximo retoque con nosotros al WhatsApp 🌟`,
@@ -2413,32 +2643,74 @@ class LussoCRM {
     const cashGivenInput = document.getElementById('pos-cash-given');
 
     const clientName = clientInput?.value.trim() || '';
-    const specialist = specSelect?.value || 'Kiara';
-    const service = srvInput?.value.trim() || '';
-    const amount = parseFloat(amtInput?.value) || 0;
-    const paymentMethod = paySelect?.value || 'POS';
-    const notes = notesInput?.value.trim() || '';
     const now = new Date();
     const date = dateInput?.value || now.toISOString().split('T')[0];
     const time = now.toTimeString().substring(0, 5);
     const tip = parseFloat(tipInput?.value) || 0;
     const commission = parseFloat(commissionInput?.value) || 0;
     const commissionReason = commissionReasonInput?.value.trim() || '';
+    const paymentMethod = paySelect?.value || 'POS';
+    const notes = notesInput?.value.trim() || '';
     const phone = phoneInput?.value.trim() || '';
     const cashGiven = parseFloat(cashGivenInput?.value) || 0;
 
     if (!clientName) {
       this.showToast('Por favor escribe o selecciona una clienta.', 'warning');
+      clientInput?.focus();
       return;
     }
-    if (!service) {
-      this.showToast('Por favor especifica el servicio.', 'warning');
+
+    // Resolve items: from posItems cart or from manual inputs fallback
+    let saleItems = [];
+    if (this.posItems && this.posItems.length > 0) {
+      saleItems = [...this.posItems];
+    } else {
+      // Fallback: check manual input box or single service input
+      const manualName = document.getElementById('pos-manual-service-name')?.value.trim() || srvInput?.value.trim();
+      const manualPrice = parseFloat(document.getElementById('pos-manual-service-price')?.value) || parseFloat(amtInput?.value) || 0;
+      const manualSpec = document.getElementById('pos-manual-service-spec')?.value || specSelect?.value || 'Kiara';
+
+      if (manualName && manualPrice > 0) {
+        saleItems = [{
+          id: 'item-' + Date.now(),
+          name: manualName,
+          price: manualPrice,
+          specialist: manualSpec
+        }];
+      }
+    }
+
+    if (saleItems.length === 0) {
+      this.showToast('Por favor agrega al menos un servicio a la cuenta usando los botones rápidos o el campo manual.', 'warning');
       return;
     }
+
+    // Compute consolidated values
+    const service = saleItems.map(it => it.name).join(' + ');
+    const amount = saleItems.reduce((acc, it) => acc + (Number(it.price) || 0), 0);
+
     if (isNaN(amount) || amount <= 0) {
-      this.showToast('Por favor introduce un monto válido.', 'warning');
+      this.showToast('El monto total de los servicios debe ser mayor a 0.', 'warning');
       return;
     }
+
+    // Determine final specialist and tip recipient
+    const hasKiara = saleItems.some(it => it.specialist === 'Kiara');
+    const hasCielo = saleItems.some(it => it.specialist === 'Cielo');
+    let specialist = 'Kiara';
+    if (hasKiara && hasCielo) {
+      specialist = 'Kiara & Cielo';
+    } else if (hasCielo) {
+      specialist = 'Cielo';
+    } else {
+      specialist = 'Kiara';
+    }
+    // If user explicitly picked a specialist in the dropdown, respect it if not mixed
+    if (specSelect && specSelect.value && specSelect.value !== 'Kiara & Cielo' && (!hasKiara || !hasCielo)) {
+      specialist = specSelect.value;
+    }
+
+    const tipRecipient = (hasKiara && hasCielo) ? (this.posTipRecipient || 'Ambas') : specialist;
 
     if (phone) {
       const existingClient = window.lussoDB.getClientByName(clientName);
@@ -2462,8 +2734,10 @@ class LussoCRM {
       clientName,
       specialist,
       service,
+      items: saleItems,
       amount,
       tip,
+      tipRecipient,
       commission,
       commissionReason,
       paymentMethod,
@@ -2471,10 +2745,15 @@ class LussoCRM {
       clientPhone: phone
     });
 
-    // Clear form inputs
+    // Clear cart and form inputs
+    this.clearPOSTicket();
     if (clientInput) clientInput.value = '';
     if (srvInput) srvInput.value = '';
     if (amtInput) amtInput.value = '';
+    const manualNameInput = document.getElementById('pos-manual-service-name');
+    const manualPriceInput = document.getElementById('pos-manual-service-price');
+    if (manualNameInput) manualNameInput.value = '';
+    if (manualPriceInput) manualPriceInput.value = '';
     if (notesInput) notesInput.value = '';
     if (tipInput) tipInput.value = '';
     if (commissionInput) commissionInput.value = '';
@@ -2484,13 +2763,15 @@ class LussoCRM {
     if (dateInput) dateInput.value = now.toISOString().split('T')[0];
     const previewBox = document.getElementById('pos-client-history-preview');
     if (previewBox) previewBox.style.display = 'none';
+    const cashBox = document.getElementById('pos-cash-calculator-box');
+    if (cashBox) cashBox.style.display = 'none';
 
     this.renderSales();
     this.renderSalesHistory();
     this.renderDashboard();
     this.renderClients();
     this.renderPayroll();
-    this.showToast('¡Servicio y cobro registrados con éxito! ✨', 'success');
+    this.showToast('¡Cobro registrado con éxito! ✨', 'success');
 
     // Open digital ticket confirmation modal with 1-tap WhatsApp sharing
     this.openSaleReceiptModal({

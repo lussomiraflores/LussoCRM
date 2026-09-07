@@ -4031,12 +4031,24 @@ button, input, select, textarea {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.pos-quick-chip.chip-selected {
+.pos-quick-chip.chip-selected,
+.pos-quick-chip.chip-in-ticket {
   border-color: var(--burgundy);
   background: #fae8eb;
   color: var(--burgundy);
   font-weight: 700;
-  transform: scale(1.02);
+}
+
+.chip-qty-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: var(--burgundy);
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+  vertical-align: middle;
 }
 
 .pos-quick-chip.chip-promo {
@@ -4107,6 +4119,193 @@ button, input, select, textarea {
 .input-compact {
   max-width: 140px;
   height: 38px;
+}
+
+/* ================= POS MULTI-SERVICE TICKET CART ================= */
+.pos-manual-service-box {
+  border: 1px solid #eadfd8;
+  background: #fffcf9;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.pos-manual-inputs-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .pos-manual-inputs-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pos-ticket-box {
+  border: 1.5px solid #e7dcd5;
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.pos-ticket-header {
+  background: #fbf8f5;
+  border-bottom: 1px solid #eee5df;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pos-ticket-items-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pos-ticket-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: #7b716b;
+  font-size: 0.85rem;
+  font-style: italic;
+  background: #faf8f7;
+  border-radius: 6px;
+}
+
+.pos-ticket-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  background: #faf8f7;
+  border: 1px solid #eee5df;
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: all 0.15s ease;
+}
+
+.pos-ticket-item:hover {
+  background: #fdf5f6;
+  border-color: #f0ccd3;
+}
+
+.pos-ticket-item-name {
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pos-ticket-item-spec {
+  font-size: 0.74rem;
+  border-radius: 4px;
+  padding: 3px 6px;
+  border: 1px solid #ddd;
+  background: #ffffff;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.pos-ticket-item-spec:focus {
+  outline: none;
+  border-color: var(--burgundy);
+}
+
+.pos-ticket-item-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  color: var(--burgundy);
+  font-size: 0.88rem;
+}
+
+.pos-ticket-item-price-input {
+  width: 65px;
+  padding: 2px 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--burgundy);
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  text-align: right;
+  background: #ffffff;
+}
+
+.pos-ticket-item-price-input:focus {
+  border-color: var(--burgundy);
+  outline: none;
+}
+
+.pos-ticket-item-remove {
+  background: transparent;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 0.88rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.pos-ticket-item-remove:hover {
+  background: #fee2e2;
+}
+
+.pos-ticket-footer {
+  background: #fff8f6;
+  border-top: 1px dashed #e8d0cb;
+  padding: 8px 14px;
+}
+
+.pos-tip-rec-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pos-tip-rec-btn:hover {
+  border-color: var(--burgundy);
+}
+
+.pos-tip-rec-btn.active {
+  background: var(--burgundy);
+  color: #ffffff;
+  border-color: var(--burgundy);
+  font-weight: 600;
+}
+
+.receipt-items-breakdown {
+  margin: 6px 0;
+  padding: 6px 0;
+}
+
+.receipt-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  margin: 4px 0;
+  padding: 2px 0;
+  border-bottom: 1px dotted #e5e7eb;
+}
+
+.receipt-item-row small {
+  color: #6b7280;
+  font-style: italic;
 }
 
 /* ================= RECEIPT MODAL & TICKET ================= */
