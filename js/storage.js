@@ -44,6 +44,21 @@ class LussoStorageService {
           localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(seedSales));
         }
       }
+      // Ensure services catalog is up-to-date with the full official list of services
+      const currentServicesRaw = localStorage.getItem(STORAGE_KEYS.SERVICES);
+      const seedServices = window.LUSSO_SEED_DATA?.servicesCatalog || [];
+      if (!currentServicesRaw) {
+        localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(seedServices));
+      } else {
+        try {
+          const currentServices = JSON.parse(currentServicesRaw);
+          if (!Array.isArray(currentServices) || currentServices.length < seedServices.length || !currentServices.some(s => s.id === 'srv-25-b')) {
+            localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(seedServices));
+          }
+        } catch (e) {
+          localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(seedServices));
+        }
+      }
       // Check if appointments exist, if not seed them
       if (!localStorage.getItem(STORAGE_KEYS.APPOINTMENTS)) {
         const seed = window.LUSSO_SEED_DATA || {};
@@ -570,6 +585,14 @@ class LussoStorageService {
     } catch {
       return window.LUSSO_SEED_DATA?.servicesCatalog || [];
     }
+  }
+
+  resetServicesCatalogToDefault() {
+    const seedServices = window.LUSSO_SEED_DATA?.servicesCatalog || [];
+    try {
+      localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(seedServices));
+    } catch (e) { console.warn(e); }
+    return seedServices;
   }
 
   // --- MONTHLY OFFERS ---

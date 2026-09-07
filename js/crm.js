@@ -185,6 +185,44 @@ class LussoCRM {
       saleClientInput.addEventListener('change', (e) => this.handlePOSClientInputChange(e.target.value));
     }
 
+    // POS Manual Service Name Autocomplete / Autopopulate price & specialist
+    const posManualName = document.getElementById('pos-manual-service-name');
+    if (posManualName) {
+      const handleServiceLookup = (e) => {
+        const val = (e.target.value || '').trim().toLowerCase();
+        if (!val) return;
+        const catalog = window.lussoDB.getServicesCatalog() || [];
+        const match = catalog.find(s => s.name.toLowerCase() === val || s.name.toLowerCase().startsWith(val));
+        if (match) {
+          const priceInput = document.getElementById('pos-manual-service-price');
+          const specSelect = document.getElementById('pos-manual-service-spec');
+          if (priceInput && !priceInput.value) priceInput.value = match.price;
+          if (specSelect && match.specialist) specSelect.value = match.specialist;
+        }
+      };
+      posManualName.addEventListener('input', handleServiceLookup);
+      posManualName.addEventListener('change', handleServiceLookup);
+    }
+
+    // Manual Appointment Service Input Autopopulate price & specialist
+    const manualAptSrv = document.getElementById('manual-apt-service');
+    if (manualAptSrv) {
+      const handleAptServiceLookup = (e) => {
+        const val = (e.target.value || '').trim().toLowerCase();
+        if (!val) return;
+        const catalog = window.lussoDB.getServicesCatalog() || [];
+        const match = catalog.find(s => s.name.toLowerCase() === val || s.name.toLowerCase().startsWith(val));
+        if (match) {
+          const amtInput = document.getElementById('manual-apt-amount');
+          const specSelect = document.getElementById('manual-apt-specialist');
+          if (amtInput && !amtInput.value) amtInput.value = match.price;
+          if (specSelect && match.specialist) specSelect.value = match.specialist;
+        }
+      };
+      manualAptSrv.addEventListener('input', handleAptServiceLookup);
+      manualAptSrv.addEventListener('change', handleAptServiceLookup);
+    }
+
     // Sales Filters (POS Today)
     const salesDateFilter = document.getElementById('sales-filter-date') || document.getElementById('sales-date-filter');
     if (salesDateFilter) {
@@ -2189,13 +2227,15 @@ class LussoCRM {
       items = catalog.filter(s => {
         if (category === 'all') return true;
         const cat = (s.category || '').toLowerCase();
-        if (category === 'manicure') return cat.includes('manicure') || cat.includes('uñas') || cat.includes('acrílico') || cat.includes('gel');
-        if (category === 'pedicure') return cat.includes('pedicure') || cat.includes('pies');
-        if (category === 'corte') return cat.includes('corte') || cat.includes('peinado') || cat.includes('cepillado') || cat.includes('lavado');
-        if (category === 'color') return cat.includes('color') || cat.includes('mechas') || cat.includes('balayage') || cat.includes('tinte');
-        if (category === 'tratamientos') return cat.includes('tratamiento') || cat.includes('alisado') || cat.includes('botox') || cat.includes('keratina') || cat.includes('cirugía');
-        if (category === 'tradicionales') return cat.includes('tradicional') || cat.includes('pestaña') || cat.includes('ceja') || cat.includes('depilación');
-        return true;
+        const name = (s.name || '').toLowerCase();
+        if (category === 'manicure') return cat === 'manicure' || name.includes('manicure') || name.includes('uñas') || name.includes('acrílic') || name.includes('polygel') || name.includes('rubber');
+        if (category === 'pedicure') return cat === 'pedicure' || name.includes('pedicure') || name.includes('pies');
+        if (category === 'corte') return cat === 'corte' || name.includes('corte') || name.includes('peinado') || name.includes('cepillado') || name.includes('planchado') || name.includes('lavado');
+        if (category === 'color') return cat === 'color' || name.includes('color') || name.includes('mechas') || name.includes('balayage') || name.includes('tinte') || name.includes('raíz') || name.includes('raiz') || name.includes('matiz');
+        if (category === 'tratamientos') return cat === 'tratamientos' || name.includes('tratamiento') || name.includes('alisado') || name.includes('botox') || name.includes('bótox') || name.includes('keratina') || name.includes('nutrición') || name.includes('hidratación');
+        if (category === 'tradicionales') return cat === 'tradicionales' || name.includes('pestaña') || name.includes('ceja') || name.includes('depilación') || name.includes('lifting');
+        if (category === 'retiros') return cat === 'retiros' || name.includes('retiro') || name.includes('cambio de color');
+        return cat === category;
       });
     }
 

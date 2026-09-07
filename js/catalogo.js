@@ -206,6 +206,22 @@ const LUSSO_SERVICES_CATALOG = [
     aftercare: 'Recomendaciones personalizadas de peinado para el día a día.'
   },
   {
+    id: 'srv-13-b',
+    name: 'Corte Caballero / For Men',
+    category: 'corte',
+    specialist: 'Kiara',
+    price: 50,
+    isFrom: false,
+    duration: 30,
+    bestSeller: false,
+    badge: '✂️ Estilo Masculino',
+    image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80',
+    description: 'Corte masculino a tijera y máquina con degradado limpio, perfilado de patillas y cuello. Acabado pulcro y varonil.',
+    includes: 'Lavado revitalizante, corte estilizado, secado y toque de cera fijadora mate.',
+    recommendedFor: 'Caballeros que buscan un corte moderno, prolijo y cómodo para su rutina.',
+    aftercare: 'Retoque recomendado cada 3 a 4 semanas para mantener las líneas limpias.'
+  },
+  {
     id: 'srv-11',
     name: 'Corte de Puntas Higiénico',
     category: 'corte',
